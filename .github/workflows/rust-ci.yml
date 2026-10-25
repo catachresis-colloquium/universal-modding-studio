@@ -25,6 +25,7 @@ on:
     branches: [main]
     paths:
       - 'crates/**'
+      - 'profiles/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'rust-toolchain.toml'
@@ -36,6 +37,7 @@ on:
     branches: [main]
     paths:
       - 'crates/**'
+      - 'profiles/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'rust-toolchain.toml'

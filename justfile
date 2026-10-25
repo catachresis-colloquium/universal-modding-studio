@@ -928,3 +928,8 @@ abi-symbol-check: _zig-guard
 test-ffi *args: _zig-guard
     @echo "Running Zig FFI integration tests..."
     cd ffi/zig && mise exec zig@{{zig_version}} -- zig build test --summary all {{args}}
+
+# Profile-owned, offline IDApTIK guard-placement experiments (Linux metrics).
+idaptik-placement-experiment:
+    cargo build --release -p ums-ai-edit --bin idaptik-place-guards
+    python3 profiles/idaptik/v1/optimisation/experiment.py

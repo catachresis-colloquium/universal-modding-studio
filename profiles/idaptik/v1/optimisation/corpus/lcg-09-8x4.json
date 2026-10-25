@@ -1,0 +1,137 @@
+{
+  "base_script": {
+    "edits": [
+      {
+        "id": "z00",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 100,
+        "worldXStart": 0
+      },
+      {
+        "id": "z01",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 200,
+        "worldXStart": 100
+      },
+      {
+        "id": "z02",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 300,
+        "worldXStart": 200
+      },
+      {
+        "id": "z03",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 400,
+        "worldXStart": 300
+      }
+    ],
+    "profile": "idaptik",
+    "target": "exchange-house"
+  },
+  "format": "idaptik-guard-placement/v1",
+  "guards": [
+    {
+      "costs": {
+        "z02": 81,
+        "z03": 47
+      },
+      "id": "g00",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 89,
+        "z01": 8,
+        "z02": 60,
+        "z03": 76
+      },
+      "id": "g01",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 14,
+        "z01": 42,
+        "z02": 30,
+        "z03": 31
+      },
+      "id": "g02",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 33,
+        "z01": 93,
+        "z02": 28,
+        "z03": 69
+      },
+      "id": "g03",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 62,
+        "z02": 80,
+        "z03": 50
+      },
+      "id": "g04",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 58,
+        "z01": 81,
+        "z02": 52
+      },
+      "id": "g05",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 14,
+        "z01": 88,
+        "z02": 43,
+        "z03": 100
+      },
+      "id": "g06",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 57,
+        "z02": 28,
+        "z03": 37
+      },
+      "id": "g07",
+      "rank": "BasicGuard"
+    }
+  ],
+  "id": "lcg-09-8x4",
+  "zones": [
+    {
+      "id": "z00",
+      "max": 2,
+      "min": 1
+    },
+    {
+      "id": "z01",
+      "max": 2,
+      "min": 1
+    },
+    {
+      "id": "z02",
+      "max": 2,
+      "min": 1
+    },
+    {
+      "id": "z03",
+      "max": 2,
+      "min": 1
+    }
+  ]
+}

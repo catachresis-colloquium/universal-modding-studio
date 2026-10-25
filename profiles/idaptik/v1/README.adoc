@@ -19,3 +19,12 @@ without weakening the existing constraints or inventing data.
 `crates/ums-ai-edit::{vocab,verbs,constraints}` remains a compatibility facade
 for callers while the implementation is progressively moved behind this
 profile. Its unqualified API always means the IDApTIK profile.
+
+== Bounded offline optimisation
+
+link:optimisation/README.md[Offline guard placement] assigns new guards to
+existing zones using exact bounded search or a classical heuristic, then
+replays the emitted edit script through the existing constraints. The profile
+owns the problem, validator, reproducible corpus and measured evidence. This
+is authoring placement, not runtime patrol routing or a new game package
+schema; the game-owned package contract does not yet carry these assignments.

@@ -1,0 +1,149 @@
+{
+  "base_script": {
+    "edits": [
+      {
+        "id": "z00",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 100,
+        "worldXStart": 0
+      },
+      {
+        "id": "z01",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 200,
+        "worldXStart": 100
+      },
+      {
+        "id": "z02",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 300,
+        "worldXStart": 200
+      },
+      {
+        "id": "z03",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 400,
+        "worldXStart": 300
+      }
+    ],
+    "profile": "idaptik",
+    "target": "exchange-house"
+  },
+  "format": "idaptik-guard-placement/v1",
+  "guards": [
+    {
+      "costs": {
+        "z00": 26,
+        "z02": 36,
+        "z03": 29
+      },
+      "id": "g00",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 24,
+        "z01": 6,
+        "z02": 62,
+        "z03": 84
+      },
+      "id": "g01",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 35,
+        "z01": 24,
+        "z02": 9,
+        "z03": 13
+      },
+      "id": "g02",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z01": 30,
+        "z02": 87,
+        "z03": 20
+      },
+      "id": "g03",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 22,
+        "z01": 9,
+        "z02": 94,
+        "z03": 53
+      },
+      "id": "g04",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 72,
+        "z01": 85,
+        "z02": 53,
+        "z03": 14
+      },
+      "id": "g05",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 20,
+        "z01": 58,
+        "z02": 26,
+        "z03": 61
+      },
+      "id": "g06",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 5,
+        "z02": 71,
+        "z03": 90
+      },
+      "id": "g07",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 27,
+        "z01": 37,
+        "z02": 98,
+        "z03": 61
+      },
+      "id": "g08",
+      "rank": "BasicGuard"
+    }
+  ],
+  "id": "lcg-10-9x4",
+  "zones": [
+    {
+      "id": "z00",
+      "max": 3,
+      "min": 1
+    },
+    {
+      "id": "z01",
+      "max": 3,
+      "min": 1
+    },
+    {
+      "id": "z02",
+      "max": 3,
+      "min": 1
+    },
+    {
+      "id": "z03",
+      "max": 3,
+      "min": 1
+    }
+  ]
+}

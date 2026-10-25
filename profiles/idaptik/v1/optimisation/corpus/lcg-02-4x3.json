@@ -1,0 +1,83 @@
+{
+  "base_script": {
+    "edits": [
+      {
+        "id": "z00",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 100,
+        "worldXStart": 0
+      },
+      {
+        "id": "z01",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 200,
+        "worldXStart": 100
+      },
+      {
+        "id": "z02",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 300,
+        "worldXStart": 200
+      }
+    ],
+    "profile": "idaptik",
+    "target": "exchange-house"
+  },
+  "format": "idaptik-guard-placement/v1",
+  "guards": [
+    {
+      "costs": {
+        "z01": 84,
+        "z02": 74
+      },
+      "id": "g00",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 73,
+        "z01": 26,
+        "z02": 6
+      },
+      "id": "g01",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 65,
+        "z02": 92
+      },
+      "id": "g02",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 66,
+        "z02": 43
+      },
+      "id": "g03",
+      "rank": "BasicGuard"
+    }
+  ],
+  "id": "lcg-02-4x3",
+  "zones": [
+    {
+      "id": "z00",
+      "max": 2,
+      "min": 1
+    },
+    {
+      "id": "z01",
+      "max": 2,
+      "min": 1
+    },
+    {
+      "id": "z02",
+      "max": 2,
+      "min": 1
+    }
+  ]
+}
