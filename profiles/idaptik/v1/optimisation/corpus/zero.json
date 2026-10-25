@@ -1,0 +1,54 @@
+{
+  "base_script": {
+    "edits": [
+      {
+        "id": "z00",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 100,
+        "worldXStart": 0
+      },
+      {
+        "id": "z01",
+        "securityTier": 0,
+        "verb": "add_zone",
+        "worldXEnd": 200,
+        "worldXStart": 100
+      }
+    ],
+    "profile": "idaptik",
+    "target": "exchange-house"
+  },
+  "format": "idaptik-guard-placement/v1",
+  "guards": [
+    {
+      "costs": {
+        "z00": 0,
+        "z01": 0
+      },
+      "id": "g00",
+      "rank": "BasicGuard"
+    },
+    {
+      "costs": {
+        "z00": 0,
+        "z01": 0
+      },
+      "id": "g01",
+      "rank": "BasicGuard"
+    }
+  ],
+  "id": "zero",
+  "zones": [
+    {
+      "id": "z00",
+      "max": 2,
+      "min": 0
+    },
+    {
+      "id": "z01",
+      "max": 2,
+      "min": 0
+    }
+  ]
+}
