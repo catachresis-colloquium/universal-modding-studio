@@ -27,8 +27,10 @@ jobs:
         uses: actions/checkout@v4.1.1
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Install pinned Bun (no extra GitHub Action)
+        run: |
+          npm install --global bun@1.4.4
+          bun --version
       - name: Install dependencies
         working-directory: apps/studio
         run: bun install
