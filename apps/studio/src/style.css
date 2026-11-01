@@ -104,3 +104,23 @@ footer { color: #7f96b4; font-size: 11px; padding: 18px 28px; border-top: 1px so
 @media (max-width: 1100px) { .content-split { grid-template-columns: minmax(0, 1fr); } .lower-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 760px) { .topbar { padding: 12px 16px; } .topbar-right .chip { display: none; } .workspace { display: block; } .sidebar { border-right: 0; border-bottom: 1px solid #2d3c53; padding: 16px; } .sidebar-section { margin-bottom: 13px; } .sidebar nav { display: flex; gap: 4px; overflow-x: auto; } .lens-button { white-space: nowrap; width: auto; } .palette { display: none; } .main-column { padding: 17px; } .page-title { align-items: flex-start; flex-direction: column; } .brand strong { font-size: 10px; } .topbar-right a { font-size: 10px; } }
 @media (prefers-reduced-motion: no-preference) { button { transition: background .15s ease, border-color .15s ease; } }
+
+/* Profile-reflected authoring controls */
+.composer-panel { margin-top: 14px; border: 1px solid #304157; border-radius: 13px; background: #152131; overflow: hidden; }
+.composer-panel .note { padding: 12px 18px; }
+.composer-content { padding: 4px 18px 20px; }
+.form-field { display: flex; flex-direction: column; gap: 7px; color: #dce8f9; font-size: 12px; min-width: 0; }
+.form-field small { color: #8aa1c1; }
+.form-field input, .form-field select, .form-field textarea { width: 100%; min-height: 36px; padding: 9px 11px; border: 1px solid #48617f; border-radius: 7px; background: #101d2c; color: #e8f1fd; font-family: inherit; font-size: 12px; }
+.form-field textarea { margin: 0; height: auto; min-height: 76px; resize: vertical; font-family: ui-monospace, Consolas, monospace; }
+.composer-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 13px; margin: 14px 0 18px; }
+.composer-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+.composer-actions button, .queued-edit button { padding: 9px 12px; border: 1px solid #5a799e; border-radius: 7px; color: #ecf5ff; background: #293d57; font-size: 11px; }
+.composer-actions button:hover, .queued-edit button:hover { background: #355574; }
+.composer-queue { margin-top: 22px; border-top: 1px solid #34475e; padding-top: 16px; }
+.composer-queue h3 { font-size: 13px; margin: 0 0 13px; }
+.composer-queue .primary-button { margin-top: 14px; }
+.queued-edit { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 9px 0; border-bottom: 1px solid #2d3e53; }
+.queued-edit strong { display: block; font-size: 12px; }
+.queued-edit small { display: block; max-width: 680px; font-family: ui-monospace, Consolas, monospace; font-size: 10px; color: #9eb4d1; overflow-wrap: anywhere; margin-top: 5px; }
+.composer-evidence { white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; background: #101f2d; color: #dbeef8; border-radius: 8px; font-size: 11px; line-height: 1.5; }
