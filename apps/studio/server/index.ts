@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { checkedDraft, isProfileKey, SOURCES, type ProfileKey } from "./core";
+import { validateEditScript, type EditDescriptor } from "../src/edit-contract";
 
 const root = resolve(import.meta.dir, "../../..");
 const port = Number(process.env.UMS_STUDIO_API_PORT ?? "4178");
@@ -87,6 +88,29 @@ async function invoke(id: ProfileKey, source: unknown): Promise<Response> {
   }
 }
 
+async function invokeEdits(id: ProfileKey, script: unknown): Promise<Response> {
+  if (id !== "idaptik") {
+    return json({ ok: false, message: "This profile has no executable edit replay engine" }, 422);
+  }
+  const descriptor = await fileJSON(SOURCES[id].descriptor) as EditDescriptor;
+  const edits = validateEditScript(descriptor, script);
+  const temp = await mkdtemp(join(tmpdir(), "ums-edit-"));
+  const path = join(temp, "edits.json");
+  try {
+    await writeFile(path, JSON.stringify({ edits }, null, 2) + "\n", { mode: 0o600 });
+    const result = await runRust(["-p", "ums-ai-edit", "--", "check", path]);
+    return json({
+      ok: result.ok,
+      kind: "edit-validation",
+      message: result.ok ? "Accepted by the existing IDApTIK edit replay engine" :
+        (result.stderr || "Edit replay refused the draft"),
+      report: result.stdout
+    }, result.ok ? 200 : 422);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+}
+
 Bun.serve({
   hostname: host,
   port,
@@ -107,7 +131,7 @@ Bun.serve({
         return json({ error: "Unable to read checked-in profile sources" }, 500);
       }
     }
-    if (request.method === "POST" && url.pathname === "/api/run") {
+    if (request.method === "POST" && (url.pathname === "/api/run" || url.pathname === "/api/check-edits")) {
       const origin = request.headers.get("origin");
       if (origin && !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origin not allowed" }, 403);
       if (request.headers.get("x-ums-studio") !== "1" ||
@@ -121,9 +145,14 @@ Bun.serve({
         if (Buffer.byteLength(body, "utf8") > MAX_BYTES) return json({ error: "Draft too large" }, 413);
         const payload: unknown = JSON.parse(body);
         if (!payload || typeof payload !== "object" || !("id" in payload) ||
-            !isProfileKey(payload.id) || !("source" in payload)) {
+            !isProfileKey(payload.id)) {
           return json({ error: "Unknown profile or missing source" }, 400);
         }
+        if (url.pathname === "/api/check-edits") {
+          if (!("script" in payload)) return json({ error: "Missing edit script" }, 400);
+          return await invokeEdits(payload.id, payload.script);
+        }
+        if (!("source" in payload)) return json({ error: "Missing profile source" }, 400);
         return await invoke(payload.id, payload.source);
       } catch (error) {
         return json({ ok: false, message: error instanceof Error ? error.message : "Invalid request" }, 422);

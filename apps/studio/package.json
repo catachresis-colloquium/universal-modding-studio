@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "api": "bun server/index.ts",
-    "test": "bun test server",
+    "test": "bun test",
+    "smoke": "bun server/smoke.ts",
     "typecheck": "vue-tsc --noEmit && tsc --noEmit -p tsconfig.server.json",
     "build": "bun run typecheck && vite build",
     "preview": "vite preview --host 127.0.0.1"

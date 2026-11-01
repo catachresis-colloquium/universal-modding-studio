@@ -1,9 +1,11 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import EditComposer from "./EditComposer.vue";
+import type { EditDescriptor } from "./edit-contract";
 
 interface Named { id: string; label?: string; level?: string; evidence?: string; applies_to?: string[] }
-interface Descriptor {
+interface Descriptor extends EditDescriptor {
   profileId: string;
   targetGame: { name: string };
   componentTypes: Named[];
@@ -256,6 +258,7 @@ onMounted(async () => {
             </div>
           </section>
         </div>
+        <EditComposer v-if="active" :key="active.id" :descriptor="active.descriptor" :profile-id="active.id" />
       </section>
     </main>
     <footer>UMS / profile-owned worlds · No game runtime or Marid server is required to open this local workbench.</footer>

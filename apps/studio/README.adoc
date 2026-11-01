@@ -52,6 +52,23 @@ For development only. Do not expose either server to the public Internet.
 * For Slavia, executes the real declared-profile validator. No compiler,
   game-loader, live simulation or graphical scene is claimed.
 
+== Profile-driven edit composer
+
+The new editor reads `editVerbs`, `arguments` and `vocabularies` from each
+registered profile descriptor. It renders typed inputs and closed-vocabulary
+selectors; users queue up to 64 ordered edits and export their draft as JSON.
+This feature does *not* implement universal world editing or create unowned
+game ontology in Vue.
+
+For IDApTIK, the *Replay and validate with Rust* button calls the existing
+`ums-ai-edit check` command with the queued script and its standard initial
+state. Results include the Rust report and any refusal. This edit-script path
+is distinct from the versioned Ghost Lobby package compiler.
+
+For Chronicles of Slavia, descriptor-based composition and export are
+available, but replay is intentionally disabled until that profile has a
+real executable edit engine.
+
 == Trust boundaries
 
 The Bun API has two fixed profiles and two fixed checked-in source fixtures.
@@ -70,9 +87,11 @@ does not constitute a proof that arbitrary content is safe.
 [source,sh]
 ----
 cd apps/studio
-bun test server
+bun test
 bun run typecheck
 bun run build
+# In a second terminal with the API running:
+bun run smoke
 ----
 
 The tests check profile allowlisting, fixed game contract refusal, immutable

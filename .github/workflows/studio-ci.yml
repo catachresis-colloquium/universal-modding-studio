@@ -33,10 +33,10 @@ jobs:
           bun --version
       - name: Install dependencies
         working-directory: apps/studio
-        run: bun install
+        run: bun install --frozen-lockfile
       - name: Check Studio trust boundary
         working-directory: apps/studio
-        run: bun test server
+        run: bun test
       - name: Typecheck and build UI
         working-directory: apps/studio
         run: bun run build
