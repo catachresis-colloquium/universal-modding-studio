@@ -32,7 +32,7 @@ function object(value: unknown): value is Record<string, unknown> {
  * only allows the authored package to change. A different game/profile must
  * obtain a separately reviewed integration, not an arbitrary CLI or path.
  */
-export function checkedDraft(id: ProfileKey, draft: unknown, canonical: unknown): object {
+export function checkedDraft(id: ProfileKey, draft: unknown, canonical: unknown): Record<string, unknown> {
   if (!object(draft) || !object(canonical)) {
     throw new Error("Draft and canonical source must be JSON objects");
   }
