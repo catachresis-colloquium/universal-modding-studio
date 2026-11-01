@@ -71,9 +71,10 @@ out-of-vocabulary `GuardRank` must be refused. Without it, an engine that
 accepted everything would pass every other step in the file.
 
 Caveat::
-The engine has no interactive consumer. No editor frontend exists yet, so in
-practice `solve()` is driven from the CLI or by an external LLM. The
-architecture is unaffected; the reach is.
+The new local Vue/Bun workbench can inspect checked-in profile descriptors and
+invoke Rust compilation/validation for bounded source drafts. It does not yet
+provide an interactive solver frontend: `solve()` is still driven through
+the CLI or by an external LLM. See apps/studio/README.adoc.
 
 === "Kautz type-6 neurosymbolic"
 
@@ -255,7 +256,9 @@ them. `licence-hygiene.yml` gates attributability of every tracked file.
   reference material, not an authoritative implementation to copy.
 
 | Interactive studio frontend
-| *Not started.* The engine has no interactive consumer.
+| *Unverified alpha.* Vue/Bun workbench provides a bounded source editor and
+  existing Rust CLI bridge. Its workflow has not run a job successfully; full
+  multi-lens authoring and runtime preview remain unimplemented.
 
 | Reversible VM (`dlc/vm/`)
 | *Has never compiled.* 28 `.affine` sources, no AffineScript toolchain wired

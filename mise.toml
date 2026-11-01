@@ -7,6 +7,7 @@
 # way in editors, CI and Claude Code sessions.
 
 [tools]
+bun    = "1.4.4"     # Local Vue studio runtime and package manager
 # --- Systems / FFI + config + task runner
 zig    = "0.14.0"    # C ABI + cross-compilation for FFI/APIs (see ADR-0001)
 just   = "1.46.0"    # task runner (this repo's justfile)
