@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: Studio UI (Vue and Bun)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/studio/**"
+      - ".github/workflows/studio-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/studio/**"
+      - ".github/workflows/studio-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Typecheck, refusal tests, production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4.1.1
+        with:
+          persist-credentials: false
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        working-directory: apps/studio
+        run: bun install
+      - name: Check Studio trust boundary
+        working-directory: apps/studio
+        run: bun test server
+      - name: Typecheck and build UI
+        working-directory: apps/studio
+        run: bun run build

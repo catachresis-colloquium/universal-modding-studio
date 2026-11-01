@@ -3,9 +3,12 @@
 
 = Multi-lens studio target
 
-No interactive frontend currently exists. Today UMS is operated through Rust
-CLIs, generated schemas and LLM-driven workflows. This document specifies the
-eventual `apps/studio` interface.
+An initial local-only Vue 3/Bun workbench now exists at `apps/studio`.
+It loads real profile descriptors and source fixtures, exposes an entity inventory
+and JSON draft editor, and calls the existing Rust profile CLI for IDApTIK
+compilation or Slavia fixture validation. See `apps/studio/README.adoc`.
+The complete multi-lens interactive editor specified below is *not* yet
+implemented. Most lenses currently give an explicit unsupported projection.
 
 == Stable selection model
 

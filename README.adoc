@@ -34,6 +34,16 @@ explicitly labelled compatibility facade. A concept moves into shared UMS code
 only when another real profile needs the same host-neutral interface. See
 `docs/PROFILE-LANES.adoc` and ADR-0018.
 
+== Local Studio (alpha)
+
+The first local authoring workbench lives in link:apps/studio/README.adoc[apps/studio].
+It uses Vue 3, Vite and Bun to inspect the real profile descriptors, edit
+session-local JSON drafts and invoke the existing Rust profile CLIs. IDApTIK
+compilation requires the external game-owned contract checkout via
+`IDAPTIK_ROOT`; Slavia remains a validation-only fixture. Marid is not a
+runtime dependency. Graphical scene authoring and live preview are still future
+work; see link:docs/STUDIO-INTERFACE.adoc[the studio target].
+
 == What can you mod?
 
 Almost everything. If it exists in the IDApTIK universe, UMS provides the hooks to generate, validate, and inject it:
