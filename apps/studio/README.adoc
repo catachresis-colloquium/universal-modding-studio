@@ -90,6 +90,8 @@ cd apps/studio
 bun test
 bun run typecheck
 bun run build
+# In a second terminal with the API running:
+bun run smoke
 ----
 
 The tests check profile allowlisting, fixed game contract refusal, immutable
