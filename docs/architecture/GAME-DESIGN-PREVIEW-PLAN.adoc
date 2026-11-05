@@ -1,0 +1,80 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= UMS side of the game-design preview plan
+:toc:
+
+Status: **Proposed** (2026-11-04). The full plan and architecture live in
+`catachresis-colloquium/enaction-engine`:
+
+* `docs/architecture/GAME-DESIGN-SYSTEM.adoc`
+* `docs/proposals/ULTRACODE-COMPLETION-PLAN.adoc`
+* `docs/proposals/AFFINESCRIPT-SESSION-BRIEF.adoc`
+
+This page lists only what lands here, so UMS readers can find it.
+
+== What UMS gains
+
+A `ProcessPreviewAdapter`, the first non-test `SimulationAdapter`. It runs a
+game's pre-built headless runner and then the Enaction validator (later the
+Enaction reducer) as separate processes over canonical data. The designer
+then gets a replay-checked, evidence-labelled belief report through
+`ums-profile preview --explain`.
+
+UMS gains no Cargo dependency on Enaction or on any game (ADR-0010, ADR-0016).
+The preview fails, never falls back to a stub, when a binary or root is
+missing.
+
+== Steps that land in this repository
+
+[cols="1,4,4",options="header"]
+|===
+| Plan step | Work | Gate
+
+| 5 (Wave 1)
+| `scripts/check-architecture-boundaries.sh`:
+  delete the `affective-engine` fallback, use `mktemp` instead of the fixed
+  `/tmp` path, accept `ENACTION_ROOT`, `IDAPTIK_ROOT` and `SLAVIA_ROOT`, and
+  add a planted-violation self-test and a weekly workflow. Correct EXPLAINME
+  and ROUNDTRIP-STATUS (below).
+| the boundary script passes, and the planted violation fails it
+
+| 16 (Wave 2)
+| `.github/workflows/dlc-vm.yml`: the digest-verified AffineScript v0.1.1
+  binary checks all 28 `dlc/vm` sources and runs `reversibility.affine`. The
+  job stays red until they compile, and the guarantee stays `aspirational`.
+| the workflow concludes success
+
+| 19 (Wave 3)
+| `crates/ums-profile-sdk/src/preview.rs`, `tests/process_preview.rs`,
+  `adapters/enaction/preview-response.schema.json`,
+  `scripts/check-guarantee-evidence.sh`, `just preview-idaptik`, and
+  ADR-0019 (preview is processes over data seams).
+| process-preview tests pass; an unbacked `machine-checked` fixture is
+  rejected
+
+| 22 (Wave 4)
+| the explain lens (JCS golden), `just demo-designer`, and
+  `docs/DESIGNER-QUICKSTART.adoc`
+| the explain golden passes; the demo prints `replay-identical: ok`
+
+| 26 (Wave 5, gated)
+| the descriptor's `simulationAdapter` becomes `enaction-replay@1`
+| enaction-preview and explain-golden tests pass
+|===
+
+== Findings recorded here, 2026-11-04
+
+* `docs/ROUNDTRIP-STATUS.adoc` says the IDApTIK round trip is tested and
+  CI-gated. `just roundtrip-idaptik` cannot pass against IDApTIK `f71718b`,
+  because IDApTIK has no `examples/package-runner.rs`. A six-line runner
+  restores it; it is plan step 6, an owner-gated IDApTIK PR.
+* `docs/EXPLAINME.adoc` says "Python, TypeScript, ReScript and Go are not
+  used". `apps/studio` is TypeScript (Vue 3, Vite, Bun), and AGENTIC.a2ml
+  forbids TypeScript. No exemption is recorded. Exempt it or port it: the
+  choice is the owner's (plan question Q5).
+* `crates/ums-profile-sdk/tests/profiles.rs` fails in a clean checkout because
+  it reads `/home/user/IDApTIK`. With that path present, all 131 tests pass
+  at `09dd204`.
+* `scripts/check-architecture-boundaries.sh` expects
+  `../chronicles-of-slavia`. It passes with `SLAVIA_ROOT` pointing at a
+  checkout elsewhere.
