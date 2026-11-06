@@ -19,6 +19,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Compile any registered executable profile against its game's contract.
+    Compile {
+        #[arg(long)]
+        profile: String,
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        game_root: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+    },
     CompileIdaptik {
         #[arg(long)]
         source: PathBuf,
@@ -37,6 +48,23 @@ enum Command {
 
 fn run(command: Command) -> Result<String, String> {
     match command {
+        Command::Compile {
+            profile,
+            source,
+            game_root,
+            output,
+        } => {
+            let registry = ProfileRegistry::with_builtins();
+            let compiler = registry
+                .package_compiler(&profile)
+                .map_err(|e| e.to_string())?
+                .ok_or_else(|| format!("{profile} does not declare a package compiler"))?;
+            let package = compiler
+                .compile(&source, &game_root)
+                .map_err(|e| e.to_string())?;
+            ums_profiles::write_pretty_json(&output, &package).map_err(|e| e.to_string())?;
+            Ok(format!("compiled {}", output.display()))
+        }
         Command::CompileIdaptik {
             source,
             idaptik_root,

@@ -11,3 +11,4 @@ description = "Isolated game-profile validation and package compilation for UMS.
 
 [dependencies]
 serde_json.workspace = true
+sha2 = "0.10"

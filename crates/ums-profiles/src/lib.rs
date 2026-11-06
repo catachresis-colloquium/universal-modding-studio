@@ -10,6 +10,10 @@
 
 #![forbid(unsafe_code)]
 
+#[path = "../../../profiles/cytoville/v1/compiler.rs"]
+mod cytoville;
+pub use cytoville::compile as compile_cytoville;
+
 use serde_json::{Map, Value, json};
 use std::collections::BTreeSet;
 use std::fmt;
