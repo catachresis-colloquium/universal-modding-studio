@@ -1,0 +1,31 @@
+{
+  "apiVersion": "ums-profile/1",
+  "profileId": "cytoville",
+  "version": "1.0.0",
+  "targetGame": {"id":"cytoville","name":"Cytoville","compatibleVersions":["0.1.0"]},
+  "vocabularies": {
+    "cell-phase": ["G1","S","G2","M"],
+    "specimen": ["euglena","vorticella","paramecium","amoeba","stentor","diatom","didinium"],
+    "quest-kind": ["size","earned","career","organelles","organelle","transcription","phase","signature","homeostasis","pathways","mitosis"]
+  },
+  "componentTypes": [
+    {"id":"city.district","label":"City district","fields":[{"id":"id","valueType":"string","vocabulary":null,"required":true},{"id":"x","valueType":"number","vocabulary":null,"required":true},{"id":"y","valueType":"number","vocabulary":null,"required":true}]},
+    {"id":"cell.organelle","label":"Expressible organelle","fields":[{"id":"id","valueType":"string","vocabulary":null,"required":true},{"id":"cost","valueType":"integer","vocabulary":null,"required":true}]},
+    {"id":"life.scenario","label":"Ontogenetic scenario","fields":[{"id":"id","valueType":"string","vocabulary":null,"required":true},{"id":"turn-limit","valueType":"integer","vocabulary":null,"required":true}]},
+    {"id":"cell.course","label":"Gene expression course","fields":[{"id":"id","valueType":"string","vocabulary":null,"required":true}]}
+  ],
+  "editVerbs": [{"id":"set_scenario_budget","collection":"scenarios","summary":"Change cycle limit and starting biomass","arguments":[{"id":"turn-limit","valueType":"integer","vocabulary":null,"required":true}]}],
+  "constraints": [{"id":"cytoville-content","version":"1"}],
+  "capabilities": ["world.city-map","simulation.turn-based","biology.ontogeny","economy.resource-budget","actors.native-rival"],
+  "generators": [{"id":"builtin","version":"1"}],
+  "importers": [{"id":"cytoville-source","format":"application/json"}],
+  "exporters": [{"id":"cytoville-source","format":"application/json"}],
+  "inspectors": [{"id":"cell-cycle","label":"Cell cycle and quest budget","applies_to":["life.scenario"]}],
+  "canvasLenses": [{"id":"city-atp","label":"District travel and ATP","applies_to":["city.district"]}],
+  "simulationAdapter": {"id":"cytoville-preview","version":"1"},
+  "packageCompiler": {"id":"cytoville-package-compiler","version":"1"},
+  "runtimeContract": {"id":"cytoville-package","version":"1"},
+  "migrations": [],
+  "tests": [{"id":"non-platformer-roundtrip","version":"1"}],
+  "guarantees": [{"id":"content-validation","level":"runtime-validated","evidence":"cytoville-core::Content::validate"},{"id":"native-proof-coverage","level":"designed","evidence":"docs/verification/PROOF-STATUS.adoc"}]
+}

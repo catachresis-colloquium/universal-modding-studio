@@ -314,6 +314,15 @@ pub fn chronicles_of_slavia() -> &'static ProfileDescriptor {
     PROFILE.get_or_init(|| load(include_str!("../../../profiles/slavia/v1/descriptor.json")))
 }
 
+pub fn cytoville() -> &'static ProfileDescriptor {
+    static PROFILE: OnceLock<ProfileDescriptor> = OnceLock::new();
+    PROFILE.get_or_init(|| {
+        load(include_str!(
+            "../../../profiles/cytoville/v1/descriptor.json"
+        ))
+    })
+}
+
 #[derive(Default)]
 pub struct ProfileRegistry {
     profiles: BTreeMap<String, &'static ProfileDescriptor>,
@@ -328,6 +337,9 @@ impl ProfileRegistry {
         registry
             .register(chronicles_of_slavia())
             .expect("Chronicles of Slavia profile is valid");
+        registry
+            .register(cytoville())
+            .expect("Cytoville profile is valid");
         registry
     }
 
@@ -382,6 +394,7 @@ fn resolve_package_compiler(
         contract.version.as_str(),
     ) {
         ("idaptik", "idaptik-package-compiler", "1") => Ok(Some(&IDAPTIK_PACKAGE_COMPILER)),
+        ("cytoville", "cytoville-package-compiler", "1") => Ok(Some(&CYTOVILLE_PACKAGE_COMPILER)),
         _ => Err(ProfileError(format!(
             "profile '{}' declares unsupported package compiler '{}@{}'",
             profile.profile_id, contract.id, contract.version
@@ -416,6 +429,15 @@ pub trait ProfileCompiler: Send + Sync {
 }
 
 struct IdaptikPackageCompiler;
+
+struct CytovillePackageCompiler;
+static CYTOVILLE_PACKAGE_COMPILER: CytovillePackageCompiler = CytovillePackageCompiler;
+impl ProfileCompiler for CytovillePackageCompiler {
+    fn compile(&self, source_path: &Path, game_root: &Path) -> Result<Value, ProfileError> {
+        ums_profiles::compile_cytoville(source_path, game_root)
+            .map_err(|error| ProfileError(error.to_string()))
+    }
+}
 
 static IDAPTIK_PACKAGE_COMPILER: IdaptikPackageCompiler = IdaptikPackageCompiler;
 

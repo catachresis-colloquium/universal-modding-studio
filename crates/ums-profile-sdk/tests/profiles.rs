@@ -19,7 +19,7 @@ fn root() -> PathBuf {
 fn built_in_profiles_register_with_valid_ids_and_versions() {
     let registry = ProfileRegistry::with_builtins();
     let profiles: Vec<_> = registry.iter().collect();
-    assert_eq!(profiles.len(), 2);
+    assert_eq!(profiles.len(), 3);
     for profile in profiles {
         assert_eq!(profile.api_version, PROFILE_API_VERSION);
         assert!(is_profile_id(&profile.profile_id));

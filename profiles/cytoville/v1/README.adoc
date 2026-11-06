@@ -1,0 +1,20 @@
+= Cytoville profile v1
+// SPDX-License-Identifier: CC-BY-SA-4.0
+
+Cytoville is a turn-based protist life simulation on a city map. Its profile
+describes districts, organelles, courses, careers, encounters and cell-cycle
+quests, without platformer movement or camera assumptions.
+
+The descriptor participates in the built-in profile registry. The generic CLI
+compiles source data against the explicit contract in a Cytoville checkout:
+
+[source,bash]
+----
+ums-profile compile --profile cytoville --source source.json --game-root ../cytoville --output cytoville-package.json
+----
+
+Create and validate source data using Cytoville's `cytoville-ums` CLI. This UMS
+compiler validates identity, version and required collections/districts, then
+creates a SHA-256-bound data package. The game's Rust loader performs the full
+typed-rule and reference validation before accepting it. No executable scripts
+are accepted. A purpose-built graphical city editor remains future work.
