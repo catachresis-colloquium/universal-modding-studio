@@ -29,7 +29,8 @@ workflows:
     '.github/workflows/rust-ci.yml':
         - 'actions/cache@v4.2.0'
         - 'actions/checkout@v4.1.1'
-    '.github/workflows/secret-scanner.yml': []
+    '.github/workflows/secret-scanner.yml':
+        - 'metadatastician/standards@b8f60511e76c9015d86990317162dce653c92fe1'
     '.github/workflows/zig-ci.yml':
         - 'actions/checkout@v4.1.1'
         - 'mlugg/setup-zig@v2.0.5'
@@ -39,6 +40,11 @@ dependencies:
         commit: 'sha1-1bd1e32a3bdc45362d1e726936510720a7c30a57'
         owner_id: 44036562
         repo_id: 215566462
+    'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1':
+        ref: 'v7.0.1'
+        commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
+        owner_id: 44036562
+        repo_id: 197814629
     'actions/checkout@v4.1.1':
         ref: 'v4.1.1'
         commit: 'sha1-b4ffde65f46336ab88eb53be808477a3936bae11'
@@ -91,6 +97,13 @@ dependencies:
         commit: 'sha1-ede1191ef6ff3ac02c4f4d9efdf837ee517e11d7'
         owner_id: 6759885
         repo_id: 1352485172
+    'metadatastician/standards@b8f60511e76c9015d86990317162dce653c92fe1':
+        ref: 'b8f60511e76c9015d86990317162dce653c92fe1'
+        commit: 'sha1-b8f60511e76c9015d86990317162dce653c92fe1'
+        owner_id: 297579217
+        repo_id: 1116521501
+        uses:
+            - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     'mlugg/setup-zig@v2.0.5':
         ref: 'v2.0.5'
         commit: 'sha1-8d6198c65fb0feaa111df26e6b467fea8345e46f'
