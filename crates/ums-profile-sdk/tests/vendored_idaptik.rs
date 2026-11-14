@@ -48,7 +48,7 @@ fn report(scenario: &str) -> Value {
         .unwrap_or_else(|error| panic!("{scenario}: {error}"))
 }
 
-fn guard<'a>(report: &'a Value) -> &'a Value {
+fn guard(report: &Value) -> &Value {
     report["agents"]
         .as_array()
         .unwrap()
