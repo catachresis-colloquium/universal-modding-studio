@@ -41,50 +41,96 @@ Rules:
 == ProcessPreviewAdapter (ADR-0019, Proposed)
 
 `ums_profile_sdk::preview::ProcessPreviewAdapter` is the first non-test
-`SimulationAdapter`. It runs a game's pre-built headless runner twice and a
-validator once, as separate processes over canonical data:
+`SimulationAdapter`. It runs a game's pre-built headless runner twice and
+Enaction's validator once, as separate processes over canonical documents.
+Each document crosses as its own file, as `idaptik-weevil-replay` writes them
+(amended 2026-11-14, package B2; see ADR-0019):
 
 [source,text]
 ----
-ums-profile preview --runner PATH --validator PATH
+ums-profile preview --runner PATH --validator PATH --policies FILE
+                    [--runner-output-flag FLAG] [--mind-trace-flag FLAG]
                     [--runner-arg ARG]... [--validator-arg ARG]...
                     [--timeout-ms N] [--explain]
 ----
 
+* the runner's arguments are a template. The whole arguments
+  `{runner_output}` and `{mind_trace}` are replaced with file paths that the
+  adapter chooses; `--runner-output-flag F` appends `F {runner_output}` and
+  `--mind-trace-flag F` appends `F {mind_trace}`. `{runner_output}` is
+  required exactly once; `{mind_trace}` is optional, and without it the
+  preview has no mind trace. A slot inside a larger argument is refused;
+* one private temporary directory (mode 0700 on Unix), one subdirectory per
+  run, removed when the preview ends;
 * argument array only, no shell; cleared environment; per-process timeout;
-  stdout cap; a bare command name is refused rather than searched on `PATH`;
-* a missing or non-executable binary is a failure (`MissingBinary`,
-  `NotExecutable`). There is no fallback and no stub outside tests;
-* the two runner outputs must be byte-identical, or the preview is refused
-  with `ReplayMismatch`;
-* the runner's stdout goes to the validator on stdin. Exit 0 accepts, exit 1
-  is `ValidatorRefused` with the validator's rule and field path, any other
-  exit is `ValidatorFailed`.
+  stdout cap; a size cap on each document file; a bare command name is
+  refused rather than searched on `PATH`;
+* a missing or non-executable binary, a missing policies file, or a document
+  the runner was asked for and did not write is a failure (`MissingBinary`,
+  `NotExecutable`, `MissingPolicies`, `MissingDocument`). There is no
+  fallback and no stub outside tests;
+* each document pair must be byte-identical, or the preview is refused with
+  `ReplayMismatch`, which names the document. Runner stdout is not compared:
+  the real runner prints the paths it wrote, which differ by construction;
+* the validator is run as `--policies FILE [--mind-trace FILE]
+  [extra...]` with the runner output on stdin (CAC-KERNEL section 9). Exit 0
+  accepts. Exit 1 is `ValidatorRefused`, read from the one canonical stdout
+  line `{"faults":[{"detail","path","rule"}]}`: the first fault's rule,
+  path and detail, and a count of the rest. Any other exit is
+  `ValidatorFailed`, carrying stderr.
 
-Status: *tested against stub binaries* (`tests/process_preview.rs`). No real
-runner or validator with the route's flags exists yet, so integration with
-`idaptik-weevil-replay` and `enaction-validate` is *designed*, not tested
-(package B2 of `WEEVIL-HOST-ROUTE.adoc`).
+Status:
+
+* protocol: *tested* against stub binaries that copy the real command lines
+  and exit codes (`tests/process_preview.rs`);
+* the explain lens on real runner documents: *tested*. The documents that
+  `idaptik-weevil-replay` wrote for six corridor scenarios are vendored by
+  digest in `vendor/idaptik/weevil-corridor` and their reports are pinned
+  (`tests/vendored_idaptik.rs`). No validator runs in that test; that each
+  pair exits 0 from `enaction-validate` is IDApTIK's recorded claim;
+* the preview against the real binaries: an `#[ignore]`d test,
+  `tests/real_chain.rs`, that needs `ENACTION_VALIDATE` and
+  `IDAPTIK_WEEVIL_REPLAY`. It is not run in CI.
+
+`docs/DESIGNER-QUICKSTART.adoc` has the commands.
 
 == Explain lens
 
 `ums-profile preview ... --explain` prints `replay-identical: ok`, the
 validator verdict and a designer report from `ums_profile_sdk::explain`. The
-lens reads one `enaction-runner-output/1` document and one
-`enaction-mind-trace/1` document, as `WEEVIL-HOST-ROUTE.adoc` defines them.
+lens reads one `enaction-runner-output/1` document and, when there is one,
+one `enaction-mind-trace/1` document, in the shapes of CAC-KERNEL sections 9
+and 10, with unknown members refused. A proposition is an opaque string; a
+belief has a `bearer`, optional `holders`, an interval `confidence`
+`{belief, plausibility}` and a lowercase status.
+
 Per agent and per tick window it shows the affect token and the events that
 caused each change, the candidate ranking (never a score), the incumbent,
-the selected candidate and its rank, and the tells. It derives
-`commitment-override` (selected equals incumbent and is not first in the
-ranking) and counts the override ticks per agent. Beliefs are shown beside
-the world-truth atoms of the same frame and marked `diverges-from-world`
-where they disagree.
+the selected candidate and its rank, and the tells, with the ticks of each
+tell. It derives `commitment-override` (selected equals incumbent and is not
+first in the ranking) and lists the override ticks per agent.
 
-The report is canonical JSON (`ums-explain/1`, RFC 8785 for integer-only
-documents) plus a plain-text rendering, both pinned by golden files in
-`crates/ums-profile-sdk/tests/fixtures/explain`. Each derived row carries a
-guarantee level: `tested` where `tests/explain_golden.rs` covers it, and
-`designed` for beliefs whose holder is not a plain agent id.
+Beliefs are compared with world truth under the closed-world rule of
+CAC-KERNEL section 9: world truth holds every stated proposition that is true
+in the run, so a stated proposition absent from it is false. A held belief
+(`certain`, `believed`, `suspected`) agrees with the world when its
+proposition is present and diverges when it is absent; a `rejected` belief
+diverges when its proposition is present; `unknown` makes no claim. The
+report counts agreeing, diverging and no-claim beliefs per agent and overall.
+The lens cannot check that a runner's world truth really is closed; that is
+the runner's rule and its tests'.
+
+The report is canonical JSON (`ums-explain/2`, RFC 8785 for integer-only
+documents) plus a plain-text rendering, pinned by golden files in
+`crates/ums-profile-sdk/tests/fixtures/explain` (stub documents in the real
+shapes) and `crates/ums-profile-sdk/tests/fixtures/weevil-corridor` (real
+runner documents). Each derived row carries a guarantee level: `tested`
+where a test covers it, and `designed` for nested beliefs (non-empty
+`holders`).
+
+The vendored Enaction corpus (`vendor/enaction/conformance/mind/v1`) checks
+the lens against the owner's fixtures: for `the-grudge` it reports exactly
+the commitment-override ticks of `expected.json` (`tests/vendored_enaction.rs`).
 
 The leak verdict needs the counterfactual seam, which is deferred. The
 report always prints `leak-verdict: unverified (no counterfactual seam)` and

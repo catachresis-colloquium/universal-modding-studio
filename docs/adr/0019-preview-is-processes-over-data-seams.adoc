@@ -106,7 +106,7 @@ which the crate already had.
 
 | the preview works against the real IDApTIK runner and `enaction-validate`
 | designed
-| package B2. Neither binary exists yet with the flags this route names
+| superseded by the amendment below
 |===
 
 == Open questions for reconciliation
@@ -117,3 +117,82 @@ which the crate already had.
 * How the runner emits two documents is not fixed by the route. The adapter
   reads one JSON document per line of stdout and passes the whole stream to
   the validator.
+
+== Amendment 2026-11-14 (package B2): one file per document
+
+Status: Proposed, like the decision it amends.
+
+The real binaries now exist and differ from the readings above, which were
+made from contract prose against stubs:
+
+* `idaptik-weevil-replay --profile P --ticks N --seed S --emit-epistemic PATH
+  [--emit-mind-trace PATH]` writes each document to its own file. Its stdout
+  is a human summary that ends with `wrote PATH` for each file;
+* `enaction-validate --policies FILE [--mind-trace FILE] < runner-output.json`
+  needs the caller's policies, reads the mind trace from a file, prints the
+  canonical envelope and then the canonical mind trace on exit 0, and on exit
+  1 prints exactly one canonical line `{"faults":[{"detail","path","rule"}]}`
+  on stdout (CAC-KERNEL section 9).
+
+So the decision changes as follows; the rest stands:
+
+. the runner's arguments are a caller-supplied template in which the whole
+  arguments `{runner_output}` and `{mind_trace}` name files that the adapter
+  chooses inside one private temporary directory, one subdirectory per run;
+. replay identity compares the bytes of each document pair, under a size cap
+  per file. It no longer compares runner stdout, because the real runner
+  prints its output paths there and those differ between the two runs;
+. the validator receives `--policies` (required), `--mind-trace` when a mind
+  trace was asked for, the runner output on stdin, and any extra arguments;
+. a refusal is read from stdout only, in the canonical form only. The bare
+  `{"rule","path"}` object and the stderr fallback of the first version are
+  gone, because the real validator prints neither;
+. the response document becomes `ums-enaction-preview-response/2`.
+
+The open questions above are answered: the fault format is CAC-KERNEL
+section 9's, and the runner emits one file per document.
+
+[cols="3,1,4",options="header"]
+|===
+| Claim | Level | Evidence
+
+| each document pair is compared; a difference in either is `ReplayMismatch`
+| tested
+| `tests/process_preview.rs`:
+  `differing_runner_outputs_are_refused_with_replay_mismatch`,
+  `differing_mind_traces_are_refused_with_replay_mismatch`; a mutant that
+  skips the mind-trace comparison fails both
+
+| two private directories, removed afterwards; mode 0700 on Unix
+| tested
+| `the_two_runs_write_into_two_private_directories_that_are_removed`
+
+| an ambiguous template, a missing document, an oversized document and
+  missing policies fail
+| tested
+| `a_slot_inside_a_larger_argument_or_twice_is_refused`,
+  `a_document_the_runner_was_asked_for_but_did_not_write_fails`,
+  `a_document_over_the_file_cap_is_refused`,
+  `policies_are_required_and_must_exist`
+
+| a refusal surfaces the validator's rule and path
+| tested against a stub that prints the real format
+| `a_refusal_names_the_validators_rule_and_path`,
+  `a_refusal_with_several_faults_reports_the_first_and_counts_the_rest`
+
+| the same against the real `enaction-validate` (digest rule on a tampered
+  real runner output)
+| designed (test written, not run here)
+| `tests/real_chain.rs`,
+  `a_tampered_runner_output_is_refused_by_the_real_validator_with_the_digest_rule`;
+  `#[ignore]`d, needs `ENACTION_VALIDATE` and `IDAPTIK_WEEVIL_REPLAY`
+
+| the preview works against the real IDApTIK runner and `enaction-validate`
+| designed (test written, not run here)
+| `tests/real_chain.rs`, run by name with `--ignored`; it fails, never
+  passes, when either variable is unset
+
+| a timed-out runner's own child processes are also stopped
+| aspirational
+| unchanged: only the direct child is killed
+|===
