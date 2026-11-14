@@ -158,17 +158,13 @@ fn run(command: Command) -> Result<String, String> {
 fn preview(adapter: &ProcessPreviewAdapter, explain: bool) -> Result<String, String> {
     let outcome = adapter.run(None).map_err(|error| error.to_string())?;
     if explain {
-        let mut documents = vec![
-            outcome
-                .runner_output_document()
-                .map_err(|error| error.to_string())?,
-        ];
-        documents.extend(
-            outcome
-                .mind_trace_document()
-                .map_err(|error| error.to_string())?,
-        );
-        let report = ums_profile_sdk::explain::explain_documents(&documents, true)
+        let runner_output = outcome
+            .runner_output_document()
+            .map_err(|error| error.to_string())?;
+        let mind_trace = outcome
+            .mind_trace_document()
+            .map_err(|error| error.to_string())?;
+        let report = ums_profile_sdk::explain::explain(&runner_output, mind_trace.as_ref(), true)
             .map_err(|error| error.to_string())?;
         Ok(format!(
             "replay-identical: ok\nvalidator: accepted (exit 0)\n{}",

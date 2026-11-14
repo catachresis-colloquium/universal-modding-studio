@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
-//! The explain lens: one `enaction-runner-output/1` document and one
-//! `enaction-mind-trace/1` document become a designer report.
+//! The explain lens: one `enaction-runner-output/1` document and, when the
+//! runner emitted one, one `enaction-mind-trace/1` document become a
+//! designer report.
 //!
-//! The mind trace is read exactly as `WEEVIL-HOST-ROUTE.adoc` ("The mind
-//! trace contract") defines it, with unknown fields refused. A mind
-//! publishes a ranking of candidates and never a score, so the lens shows
-//! rankings and derives nothing from utilities.
+//! Both documents are read in the shapes Enaction defines (CAC-KERNEL
+//! sections 9 and 10) and that `conformance/mind/v1` pins, with unknown
+//! fields refused. A mind publishes a ranking of candidates and never a
+//! score, so the lens shows rankings and derives nothing from utilities.
 //!
 //! Per agent the report has:
 //!
@@ -18,9 +19,15 @@
 //!   selected candidate and its rank, and the tells;
 //! * the derived flag `commitment-override`: the selected candidate equals
 //!   the incumbent and is not first in the ranking. The producer does not
-//!   assert it; the lens derives it. Its per-agent count is in ticks;
-//! * beliefs held by the agent, each beside the world-truth atoms for the
-//!   same frame, marked `diverges-from-world` where they disagree.
+//!   assert it; the lens derives it. Its ticks are listed per agent;
+//! * the ticks at which each tell is shown;
+//! * the beliefs the agent bears, each compared with world truth under the
+//!   closed-world rule of CAC-KERNEL section 9: world truth lists every
+//!   stated proposition that is true, so a stated proposition absent from
+//!   it is false. A held belief (`certain`, `believed`, `suspected`) agrees
+//!   when its proposition is present and diverges when it is absent; a
+//!   `rejected` belief diverges when its proposition is present and agrees
+//!   otherwise; `unknown` makes no claim.
 //!
 //! Every derived row carries a [`GuaranteeLevel`]: `tested` where a test in
 //! `tests/explain_golden.rs` covers the derivation, `designed` otherwise.
@@ -33,12 +40,12 @@ use crate::GuaranteeLevel;
 use crate::canonical::{self, CanonicalError};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fmt::Write as _;
 
 /// Contract tag of the report.
-pub const REPORT_CONTRACT: &str = "ums-explain/1";
+pub const REPORT_CONTRACT: &str = "ums-explain/2";
 /// Contract tag of the mind trace this lens reads.
 pub const MIND_TRACE_CONTRACT: &str = "enaction-mind-trace/1";
 /// Contract tag of the runner output this lens reads.
@@ -47,6 +54,9 @@ pub const RUNNER_OUTPUT_CONTRACT: &str = "enaction-runner-output/1";
 pub const LEAK_VERDICT: &str = "unverified (no counterfactual seam)";
 
 const EVIDENCE: &str = "crates/ums-profile-sdk/tests/explain_golden.rs";
+const AGREES: &str = "agrees-with-world";
+const DIVERGES: &str = "diverges-from-world";
+const NO_CLAIM: &str = "no-claim";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExplainError {
@@ -85,6 +95,8 @@ impl From<CanonicalError> for ExplainError {
         Self::new(rule, error.to_string())
     }
 }
+
+// ---- enaction-mind-trace/1 (CAC-KERNEL section 10) ----
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -134,7 +146,8 @@ struct TickRecord {
 #[serde(deny_unknown_fields)]
 struct Affect {
     token: String,
-    attention: u64,
+    #[serde(default)]
+    attention: Option<u64>,
     caused_by: Vec<u64>,
 }
 
@@ -142,154 +155,193 @@ struct Affect {
 #[serde(deny_unknown_fields)]
 struct Conation {
     ranking: Vec<String>,
-    #[serde(default)]
-    incumbent: Option<String>,
+    incumbent: String,
     selected: String,
     #[serde(default)]
     target: Option<String>,
+}
+
+// ---- enaction-runner-output/1 (CAC-KERNEL section 9) ----
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Envelope {
+    contract: String,
+    package: Package,
+    world_truth: Vec<String>,
+}
+
+/// The members of `EpistemicPackage` the lens reads. Events and the
+/// manifest are read loosely: their full rules are the validator's.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Package {
+    #[serde(default)]
+    events: Vec<Value>,
+    #[serde(default)]
+    beliefs: Vec<Belief>,
+    manifest: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Belief {
+    belief_id: u64,
+    #[serde(default)]
+    holders: Vec<String>,
+    bearer: String,
+    proposition: String,
+    status: Status,
+    confidence: Interval,
+    source_events: Vec<u64>,
+    valid_from: u64,
+    #[serde(default)]
+    supersedes: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum Status {
+    Certain,
+    Believed,
+    Suspected,
+    Rejected,
+    Unknown,
+}
+
+impl Status {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Certain => "certain",
+            Self::Believed => "believed",
+            Self::Suspected => "suspected",
+            Self::Rejected => "rejected",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    /// The closed-world comparison (CAC-KERNEL section 9).
+    fn world(self, in_world_truth: bool) -> &'static str {
+        match (self, in_world_truth) {
+            (Self::Unknown, _) => NO_CLAIM,
+            (Self::Rejected, true) => DIVERGES,
+            (Self::Rejected, false) => AGREES,
+            (_, true) => AGREES,
+            (_, false) => DIVERGES,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Interval {
+    belief: u64,
+    plausibility: u64,
 }
 
 fn guarantee(level: GuaranteeLevel, evidence: &str) -> Value {
     json!({"level": level, "evidence": evidence})
 }
 
-/// Pick the runner output (the document with `package` and `world_truth`)
-/// and the mind trace (contract `enaction-mind-trace/1`) from a runner's
-/// document stream, then explain them.
-pub fn explain_documents(documents: &[Value], validated: bool) -> Result<Value, ExplainError> {
-    let runner_output = documents
-        .iter()
-        .find(|document| document.get("package").is_some() && document.get("world_truth").is_some())
-        .ok_or_else(|| {
-            ExplainError::new(
-                "MissingDocument",
-                format!(
-                    "no {RUNNER_OUTPUT_CONTRACT} document (an object with package and world_truth)"
-                ),
-            )
-        })?;
-    let mind_trace = documents
-        .iter()
-        .find(|document| {
-            document.get("contract").and_then(Value::as_str) == Some(MIND_TRACE_CONTRACT)
-        })
-        .ok_or_else(|| {
-            ExplainError::new(
-                "MissingDocument",
-                format!("no {MIND_TRACE_CONTRACT} document"),
-            )
-        })?;
-    explain(runner_output, mind_trace, validated)
-}
-
-/// Explain one runner output and one mind trace. `validated` records
-/// whether a validator process accepted these documents; the lens itself
-/// does not validate them beyond what it needs to read them.
+/// Explain one runner output and, optionally, one mind trace. `validated`
+/// records whether a validator process accepted these documents; the lens
+/// itself does not validate them beyond what it needs to read them.
 pub fn explain(
     runner_output: &Value,
-    mind_trace: &Value,
+    mind_trace: Option<&Value>,
     validated: bool,
 ) -> Result<Value, ExplainError> {
     canonical::check_integers(runner_output)?;
-    canonical::check_integers(mind_trace)?;
-    let trace: MindTrace = serde_json::from_value(mind_trace.clone())
-        .map_err(|error| ExplainError::new("MalformedMindTrace", error.to_string()))?;
-    if trace.contract != MIND_TRACE_CONTRACT {
+    let envelope: Envelope = serde_json::from_value(runner_output.clone())
+        .map_err(|error| ExplainError::new("MalformedRunnerOutput", error.to_string()))?;
+    if envelope.contract != RUNNER_OUTPUT_CONTRACT {
         return Err(ExplainError::new(
             "WrongContract",
-            format!("expected {MIND_TRACE_CONTRACT}, found {}", trace.contract),
+            format!(
+                "expected {RUNNER_OUTPUT_CONTRACT}, found {}",
+                envelope.contract
+            ),
         ));
     }
-    let world = RunnerOutput::read(runner_output)?;
+    let trace = match mind_trace {
+        None => None,
+        Some(document) => {
+            canonical::check_integers(document)?;
+            let trace: MindTrace = serde_json::from_value(document.clone())
+                .map_err(|error| ExplainError::new("MalformedMindTrace", error.to_string()))?;
+            if trace.contract != MIND_TRACE_CONTRACT {
+                return Err(ExplainError::new(
+                    "WrongContract",
+                    format!("expected {MIND_TRACE_CONTRACT}, found {}", trace.contract),
+                ));
+            }
+            Some(trace)
+        }
+    };
+    let world = World::read(&envelope);
 
     let mut agents: BTreeMap<String, AgentRows> = BTreeMap::new();
-    for record in &trace.ticks {
+    for record in trace.iter().flat_map(|trace| &trace.ticks) {
         agents
             .entry(record.agent.clone())
             .or_default()
             .push_tick(record, &world)?;
     }
-    for belief in &world.beliefs {
-        let (key, plain) = match belief.get("holder") {
-            Some(Value::String(holder)) => (holder.clone(), true),
-            Some(other) => (canonical::to_canonical_string(other)?, false),
-            None => {
-                return Err(ExplainError::new(
-                    "MalformedRunnerOutput",
-                    "a belief has no holder",
-                ));
-            }
-        };
-        let row = world.belief_row(belief, plain);
-        agents.entry(key).or_default().beliefs.push(row);
+    let mut overall = Summary::default();
+    for belief in &envelope.package.beliefs {
+        let row = world.belief_row(belief);
+        overall.count(&row);
+        let rows = agents.entry(belief.bearer.clone()).or_default();
+        rows.summary.count(&row);
+        rows.beliefs.push(row);
     }
 
     let agents: Vec<Value> = agents
         .into_iter()
         .map(|(agent, rows)| rows.finish(agent))
         .collect();
+    let manifest_profile = &envelope.package.manifest["profile"];
+    let package_profile = json!({
+        "id": manifest_profile["id"],
+        "version": format!(
+            "{}.{}",
+            text(&manifest_profile["version"]["major"]),
+            text(&manifest_profile["version"]["minor"])
+        ),
+    });
     Ok(json!({
         "report": REPORT_CONTRACT,
         "inputs": {
             "runner_output": RUNNER_OUTPUT_CONTRACT,
-            "mind_trace": MIND_TRACE_CONTRACT,
+            "mind_trace": if trace.is_some() { MIND_TRACE_CONTRACT } else { "absent" },
             "validation": if validated { "validator-accepted" } else { "not-validated" },
         },
-        "producer": {"kernel": trace.producer.kernel, "abi": trace.producer.abi},
-        "profile": {"id": trace.profile.id, "version": trace.profile.version},
+        "producer": trace.as_ref().map(|trace| json!({"kernel": trace.producer.kernel, "abi": trace.producer.abi})),
+        "profile": trace.as_ref().map(|trace| json!({"id": trace.profile.id, "version": trace.profile.version})),
+        "package_profile": package_profile,
         "leak_verdict": LEAK_VERDICT,
+        "belief_summary": overall.to_value(),
         "agents": agents,
     }))
 }
 
-struct RunnerOutput<'a> {
+struct World<'a> {
     events: BTreeMap<u64, &'a Value>,
-    beliefs: Vec<&'a Value>,
-    truth: BTreeMap<String, Vec<String>>,
+    truth: BTreeSet<&'a str>,
 }
 
-impl<'a> RunnerOutput<'a> {
-    fn read(document: &'a Value) -> Result<Self, ExplainError> {
-        let malformed = |detail: &str| ExplainError::new("MalformedRunnerOutput", detail);
-        let package = document
-            .get("package")
-            .and_then(Value::as_object)
-            .ok_or_else(|| malformed("package is not an object"))?;
-        let truth_atoms = document
-            .get("world_truth")
-            .and_then(Value::as_array)
-            .ok_or_else(|| malformed("world_truth is not an array"))?;
-        let array = |name: &str| -> Result<Vec<&'a Value>, ExplainError> {
-            match package.get(name) {
-                None => Ok(Vec::new()),
-                Some(Value::Array(items)) => Ok(items.iter().collect()),
-                Some(_) => Err(malformed(&format!("package.{name} is not an array"))),
-            }
-        };
+impl<'a> World<'a> {
+    fn read(envelope: &'a Envelope) -> Self {
         let mut events = BTreeMap::new();
-        for event in array("events")? {
+        for event in &envelope.package.events {
             if let Some(id) = event.get("event_id").and_then(Value::as_u64) {
                 events.insert(id, event);
             }
         }
-        let mut truth: BTreeMap<String, Vec<String>> = BTreeMap::new();
-        for atom in truth_atoms {
-            let (Some(frame), Some(hypothesis)) = (
-                atom.get("frame").and_then(Value::as_str),
-                atom.get("hypothesis").and_then(Value::as_str),
-            ) else {
-                return Err(malformed("a world_truth atom lacks frame or hypothesis"));
-            };
-            let hypotheses = truth.entry(frame.to_owned()).or_default();
-            hypotheses.push(hypothesis.to_owned());
-            hypotheses.sort();
-            hypotheses.dedup();
-        }
-        Ok(Self {
+        Self {
             events,
-            beliefs: array("beliefs")?,
-            truth,
-        })
+            truth: envelope.world_truth.iter().map(String::as_str).collect(),
+        }
     }
 
     fn cause(&self, id: u64) -> Value {
@@ -311,55 +363,60 @@ impl<'a> RunnerOutput<'a> {
         Value::Object(out)
     }
 
-    fn belief_row(&self, belief: &Value, plain_holder: bool) -> Value {
-        let proposition = belief.get("proposition").cloned().unwrap_or(Value::Null);
-        let status = belief.get("status").and_then(Value::as_str).unwrap_or("");
-        let frame = proposition.get("frame").and_then(Value::as_str);
-        let hypothesis = proposition.get("hypothesis").and_then(Value::as_str);
-        let truth = frame.and_then(|frame| self.truth.get(frame));
-        let world = match (frame, hypothesis, truth) {
-            (None, _, _) | (_, None, _) => "not-comparable",
-            (Some(_), Some(_), None) => "no-world-truth",
-            (Some(_), Some(hypothesis), Some(truth)) => {
-                let holds = truth
-                    .iter()
-                    .any(|true_hypothesis| true_hypothesis == hypothesis);
-                match status.to_ascii_lowercase().as_str() {
-                    "known" | "certain" | "believed" | "suspected" => {
-                        if holds {
-                            "agrees-with-world"
-                        } else {
-                            "diverges-from-world"
-                        }
-                    }
-                    "rejected" => {
-                        if holds {
-                            "diverges-from-world"
-                        } else {
-                            "agrees-with-world"
-                        }
-                    }
-                    "unknown" => "no-claim",
-                    _ => "not-comparable",
-                }
-            }
-        };
-        let level = if plain_holder {
+    fn belief_row(&self, belief: &Belief) -> Value {
+        let in_world_truth = self.truth.contains(belief.proposition.as_str());
+        let level = if belief.holders.is_empty() {
             guarantee(GuaranteeLevel::Tested, EVIDENCE)
         } else {
             guarantee(
                 GuaranteeLevel::Designed,
-                "holder is not a plain agent id (nested belief); grouping it under its canonical JSON is not covered by a test of nested semantics",
+                "nested belief (holders is not empty): the closed-world comparison is applied to its proposition, but no test covers the semantics of comparing a modelled belief with the world",
             )
         };
         json!({
-            "belief_id": belief.get("belief_id").cloned().unwrap_or(Value::Null),
-            "proposition": proposition,
-            "status": status,
-            "source_events": belief.get("source_events").cloned().unwrap_or(json!([])),
-            "world_truth": truth.cloned().map_or(Value::Null, |truth| json!(truth)),
-            "world": world,
+            "belief_id": belief.belief_id,
+            "bearer": belief.bearer,
+            "holders": belief.holders,
+            "proposition": belief.proposition,
+            "status": belief.status.name(),
+            "confidence": {
+                "belief": belief.confidence.belief,
+                "plausibility": belief.confidence.plausibility,
+            },
+            "source_events": belief.source_events,
+            "valid_from": belief.valid_from,
+            "supersedes": belief.supersedes,
+            "in_world_truth": in_world_truth,
+            "world": belief.status.world(in_world_truth),
             "guarantee": level,
+        })
+    }
+}
+
+#[derive(Default)]
+struct Summary {
+    beliefs: u64,
+    agrees: u64,
+    diverges: u64,
+    no_claim: u64,
+}
+
+impl Summary {
+    fn count(&mut self, row: &Value) {
+        self.beliefs += 1;
+        match row["world"].as_str() {
+            Some(AGREES) => self.agrees += 1,
+            Some(DIVERGES) => self.diverges += 1,
+            _ => self.no_claim += 1,
+        }
+    }
+
+    fn to_value(&self) -> Value {
+        json!({
+            "beliefs": self.beliefs,
+            AGREES: self.agrees,
+            DIVERGES: self.diverges,
+            NO_CLAIM: self.no_claim,
         })
     }
 }
@@ -369,13 +426,23 @@ struct AgentRows {
     windows: Vec<Map<String, Value>>,
     last_key: Option<Value>,
     last_token: Option<String>,
-    override_ticks: u64,
+    override_at: Vec<u64>,
+    tells_at: BTreeMap<String, Vec<u64>>,
     ticks: u64,
     beliefs: Vec<Value>,
+    summary: Summary,
+}
+
+fn attention_bound(current: &Value, next: Option<u64>, pick: fn(u64, u64) -> u64) -> Value {
+    match (current.as_u64(), next) {
+        (Some(a), Some(b)) => json!(pick(a, b)),
+        (Some(a), None) => json!(a),
+        (None, next) => json!(next),
+    }
 }
 
 impl AgentRows {
-    fn push_tick(&mut self, record: &TickRecord, world: &RunnerOutput) -> Result<(), ExplainError> {
+    fn push_tick(&mut self, record: &TickRecord, world: &World) -> Result<(), ExplainError> {
         let conation = &record.conation;
         let rank = conation
             .ranking
@@ -390,11 +457,16 @@ impl AgentRows {
                     ),
                 )
             })?;
-        let override_tick =
-            conation.incumbent.as_deref() == Some(conation.selected.as_str()) && rank != 0;
+        let override_tick = conation.incumbent == conation.selected && rank != 0;
         self.ticks += 1;
         if override_tick {
-            self.override_ticks += 1;
+            self.override_at.push(record.tick);
+        }
+        for tell in &record.tells {
+            self.tells_at
+                .entry(tell.clone())
+                .or_default()
+                .push(record.tick);
         }
 
         let key = json!([
@@ -411,16 +483,18 @@ impl AgentRows {
                 let count = window["ticks"].as_u64().unwrap_or(0) + 1;
                 window.insert("ticks".into(), json!(count));
                 if let Some(Value::Object(affect)) = window.get_mut("affect") {
-                    let low = affect["attention_min"].as_u64().unwrap_or(u64::MAX);
-                    let high = affect["attention_max"].as_u64().unwrap_or(0);
-                    affect.insert(
-                        "attention_min".into(),
-                        json!(low.min(record.affect.attention)),
+                    let low = attention_bound(
+                        &affect["attention_min"],
+                        record.affect.attention,
+                        u64::min,
                     );
-                    affect.insert(
-                        "attention_max".into(),
-                        json!(high.max(record.affect.attention)),
+                    let high = attention_bound(
+                        &affect["attention_max"],
+                        record.affect.attention,
+                        u64::max,
                     );
+                    affect.insert("attention_min".into(), low);
+                    affect.insert("attention_max".into(), high);
                 }
             }
             return Ok(());
@@ -470,9 +544,12 @@ impl AgentRows {
         json!({
             "agent": agent,
             "ticks": self.ticks,
-            "commitment_override_ticks": self.override_ticks,
+            "commitment_override_ticks": self.override_at.len(),
+            "commitment_override_at": self.override_at,
             "commitment_override_guarantee": guarantee(GuaranteeLevel::Tested, EVIDENCE),
+            "tells_at": self.tells_at,
             "windows": self.windows,
+            "belief_summary": self.summary.to_value(),
             "beliefs": self.beliefs,
         })
     }
@@ -497,125 +574,202 @@ fn words(values: &Value, separator: &str) -> String {
         .unwrap_or_default()
 }
 
+/// Ticks as comma-separated runs: `[3, 4, 5, 9]` is `3..5, 9`.
+fn tick_ranges(ticks: &Value) -> String {
+    let ticks: Vec<u64> = ticks
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_u64)
+        .collect();
+    let mut runs: Vec<(u64, u64)> = Vec::new();
+    for tick in ticks {
+        match runs.last_mut() {
+            Some((_, end)) if tick == *end + 1 => *end = tick,
+            _ => runs.push((tick, tick)),
+        }
+    }
+    runs.iter()
+        .map(|(start, end)| {
+            if start == end {
+                start.to_string()
+            } else {
+                format!("{start}..{end}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn summary_line(summary: &Value) -> String {
+    format!(
+        "beliefs: {}; {AGREES}: {}; {DIVERGES}: {}; {NO_CLAIM}: {}",
+        summary["beliefs"], summary[AGREES], summary[DIVERGES], summary[NO_CLAIM]
+    )
+}
+
 /// Plain-text rendering of a report from [`explain`].
 pub fn render_text(report: &Value) -> String {
     let mut out = String::new();
     let _ = writeln!(out, "explain report {}", text(&report["report"]));
+    let mind = match report["inputs"]["mind_trace"].as_str() {
+        Some("absent") => "no mind trace".to_owned(),
+        _ => text(&report["inputs"]["mind_trace"]),
+    };
     let _ = writeln!(
         out,
         "inputs: {} + {} ({})",
         text(&report["inputs"]["runner_output"]),
-        text(&report["inputs"]["mind_trace"]),
+        mind,
         text(&report["inputs"]["validation"])
     );
     let _ = writeln!(
         out,
-        "profile: {} {}; producer: {} abi {}",
-        text(&report["profile"]["id"]),
-        text(&report["profile"]["version"]),
-        text(&report["producer"]["kernel"]),
-        text(&report["producer"]["abi"])
+        "package profile: {} {}",
+        text(&report["package_profile"]["id"]),
+        text(&report["package_profile"]["version"])
     );
-    let _ = writeln!(out, "leak-verdict: {}", text(&report["leak_verdict"]));
-    for agent in report["agents"].as_array().into_iter().flatten() {
-        let _ = writeln!(out);
+    if !report["profile"].is_null() {
         let _ = writeln!(
             out,
-            "agent {}: commitment-override ticks: {} of {} [{}]",
+            "mind profile: {} {}; producer: {} abi {}",
+            text(&report["profile"]["id"]),
+            text(&report["profile"]["version"]),
+            text(&report["producer"]["kernel"]),
+            text(&report["producer"]["abi"])
+        );
+    }
+    let _ = writeln!(out, "leak-verdict: {}", text(&report["leak_verdict"]));
+    let _ = writeln!(out, "{}", summary_line(&report["belief_summary"]));
+    for agent in report["agents"].as_array().into_iter().flatten() {
+        let _ = writeln!(out);
+        let overrides = tick_ranges(&agent["commitment_override_at"]);
+        let _ = writeln!(
+            out,
+            "agent {}: commitment-override ticks: {} of {}{} [{}]",
             text(&agent["agent"]),
             agent["commitment_override_ticks"],
             agent["ticks"],
+            if overrides.is_empty() {
+                String::new()
+            } else {
+                format!(" ({overrides})")
+            },
             text(&agent["commitment_override_guarantee"]["level"])
         );
+        let tells: Vec<String> = agent["tells_at"]
+            .as_object()
+            .into_iter()
+            .flatten()
+            .map(|(tell, ticks)| format!("{tell}@{}", tick_ranges(ticks)))
+            .collect();
+        if !tells.is_empty() {
+            let _ = writeln!(out, "  tells at: {}", tells.join("; "));
+        }
+        let _ = writeln!(out, "  {}", summary_line(&agent["belief_summary"]));
         for window in agent["windows"].as_array().into_iter().flatten() {
-            let ticks = window["ticks"].as_u64().unwrap_or(0);
-            let _ = writeln!(
-                out,
-                "  ticks {}..{} ({} tick{})",
-                window["first_tick"],
-                window["last_tick"],
-                ticks,
-                if ticks == 1 { "" } else { "s" }
-            );
-            let affect = &window["affect"];
-            let mut change = match affect["change"].as_str() {
-                Some("changed") => format!("changed from {}", text(&affect["previous"])),
-                Some(other) => other.to_owned(),
-                None => String::new(),
-            };
-            let causes: Vec<String> = affect["caused_by"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .map(|cause| {
-                    if cause["resolved"] == true {
-                        format!(
-                            "#{} {}@{}",
-                            cause["id"],
-                            text(&cause["kind"]),
-                            text(&cause["tick"])
-                        )
-                    } else {
-                        format!("#{} unresolved", cause["id"])
-                    }
-                })
-                .collect();
-            if !causes.is_empty() {
-                let _ = write!(change, "; caused by {}", causes.join(", "));
-            }
-            let attention = if affect["attention_min"] == affect["attention_max"] {
-                format!("{}", affect["attention_min"])
-            } else {
-                format!("{}..{}", affect["attention_min"], affect["attention_max"])
-            };
-            let _ = writeln!(
-                out,
-                "    affect: {} ({}); attention {}",
-                text(&affect["token"]),
-                change,
-                attention
-            );
-            let _ = writeln!(
-                out,
-                "    ranking: {}; incumbent: {}; selected: {} (rank {}); target: {}",
-                words(&window["ranking"], " > "),
-                text(&window["incumbent"]),
-                text(&window["selected"]),
-                window["selected_rank"],
-                text(&window["target"])
-            );
-            let tells = words(&window["tells"], ", ");
-            let _ = writeln!(
-                out,
-                "    tells: {}",
-                if tells.is_empty() {
-                    "none".into()
-                } else {
-                    tells
-                }
-            );
-            if window["commitment_override"] == true {
-                let _ = writeln!(out, "    commitment-override [{}]", level(window));
-            }
+            render_window(&mut out, window);
         }
         for belief in agent["beliefs"].as_array().into_iter().flatten() {
-            let proposition = &belief["proposition"];
-            let truth = match &belief["world_truth"] {
-                Value::Null => "none".to_owned(),
-                truth => format!("{}={}", text(&proposition["frame"]), words(truth, "|")),
-            };
+            let holders = words(&belief["holders"], " > ");
             let _ = writeln!(
                 out,
-                "  belief {}: {}={} ({}); world: {} -> {} [{}]",
+                "  belief {}: {}{:?} ({} {}..{}); {} world truth -> {} [{}]",
                 text(&belief["belief_id"]),
-                text(&proposition["frame"]),
-                text(&proposition["hypothesis"]),
+                if holders.is_empty() {
+                    String::new()
+                } else {
+                    format!("as modelled by {holders}: ")
+                },
+                text(&belief["proposition"]),
                 text(&belief["status"]),
-                truth,
+                belief["confidence"]["belief"],
+                belief["confidence"]["plausibility"],
+                if belief["in_world_truth"] == true {
+                    "in"
+                } else {
+                    "absent from"
+                },
                 text(&belief["world"]),
                 level(belief)
             );
         }
     }
     out
+}
+
+fn render_window(out: &mut String, window: &Value) {
+    let ticks = window["ticks"].as_u64().unwrap_or(0);
+    let _ = writeln!(
+        out,
+        "  ticks {}..{} ({} tick{})",
+        window["first_tick"],
+        window["last_tick"],
+        ticks,
+        if ticks == 1 { "" } else { "s" }
+    );
+    let affect = &window["affect"];
+    let mut change = match affect["change"].as_str() {
+        Some("changed") => format!("changed from {}", text(&affect["previous"])),
+        Some(other) => other.to_owned(),
+        None => String::new(),
+    };
+    let causes: Vec<String> = affect["caused_by"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|cause| {
+            if cause["resolved"] == true {
+                format!(
+                    "#{} {}@{}",
+                    cause["id"],
+                    text(&cause["kind"]),
+                    text(&cause["tick"])
+                )
+            } else {
+                format!("#{} unresolved", cause["id"])
+            }
+        })
+        .collect();
+    if !causes.is_empty() {
+        let _ = write!(change, "; caused by {}", causes.join(", "));
+    }
+    let attention = if affect["attention_min"] == affect["attention_max"] {
+        text(&affect["attention_min"])
+    } else {
+        format!(
+            "{}..{}",
+            text(&affect["attention_min"]),
+            text(&affect["attention_max"])
+        )
+    };
+    let _ = writeln!(
+        out,
+        "    affect: {} ({}); attention {}",
+        text(&affect["token"]),
+        change,
+        attention
+    );
+    let _ = writeln!(
+        out,
+        "    ranking: {}; incumbent: {}; selected: {} (rank {}); target: {}",
+        words(&window["ranking"], " > "),
+        text(&window["incumbent"]),
+        text(&window["selected"]),
+        window["selected_rank"],
+        text(&window["target"])
+    );
+    let tells = words(&window["tells"], ", ");
+    let _ = writeln!(
+        out,
+        "    tells: {}",
+        if tells.is_empty() {
+            "none".into()
+        } else {
+            tells
+        }
+    );
+    if window["commitment_override"] == true {
+        let _ = writeln!(out, "    commitment-override [{}]", level(window));
+    }
 }

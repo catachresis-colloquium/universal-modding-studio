@@ -1,18 +1,19 @@
-explain report ums-explain/1
+explain report ums-explain/2
 inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
-profile: stub-profile 0.0.0; producer: stub abi 1.1
+package profile: stub/esm/v1 1.0
+mind profile: stub-profile 0.0.0; producer: stub abi 1.1
 leak-verdict: unverified (no counterfactual seam)
+beliefs: 7; agrees-with-world: 3; diverges-from-world: 3; no-claim: 1
 
-agent ["agent-a","agent-b"]: commitment-override ticks: 0 of 0 [tested]
-  belief 6: door=south (Believed); world: door=south -> agrees-with-world [designed]
-
-agent agent-a: commitment-override ticks: 2 of 6 [tested]
+agent agent-a: commitment-override ticks: 2 of 6 (13..14) [tested]
+  tells at: fixate@13..14; hesitate@15; startle@12
+  beliefs: 3; agrees-with-world: 1; diverges-from-world: 2; no-claim: 0
   ticks 10..11 (2 ticks)
     affect: calm (initial); attention 1000..1200
     ranking: advance > investigate; incumbent: advance; selected: advance (rank 1); target: none
     tells: none
   ticks 12..12 (1 tick)
-    affect: angry (changed from calm; caused by #12 ActionOutcome@12); attention 6000
+    affect: angry (changed from calm; caused by #12 action_outcome@12); attention 6000
     ranking: engage > advance; incumbent: advance; selected: engage (rank 1); target: contact-1
     tells: startle
   ticks 13..14 (2 ticks)
@@ -21,21 +22,25 @@ agent agent-a: commitment-override ticks: 2 of 6 [tested]
     tells: fixate
     commitment-override [tested]
   ticks 15..15 (1 tick)
-    affect: wary (changed from angry; caused by #17 Observation@14); attention 4000
+    affect: wary (changed from angry; caused by #17 observation@14); attention 4000
     ranking: evade > engage; incumbent: engage; selected: evade (rank 1); target: none
     tells: hesitate
-  belief 1: door=north (Believed); world: door=south -> diverges-from-world [tested]
-  belief 2: alarm=off (Rejected); world: alarm=on -> agrees-with-world [tested]
+  belief 1: "door is north" (believed 8000..9500); absent from world truth -> diverges-from-world [tested]
+  belief 2: "alarm is off" (rejected 0..500); absent from world truth -> agrees-with-world [tested]
+  belief 7: "alarm is on" (rejected 200..900); in world truth -> diverges-from-world [tested]
 
 agent agent-b: commitment-override ticks: 0 of 2 [tested]
+  tells at: hesitate@12
+  beliefs: 4; agrees-with-world: 2; diverges-from-world: 1; no-claim: 1
   ticks 10..10 (1 tick)
     affect: calm (initial); attention 900
     ranking: investigate > advance; incumbent: investigate; selected: investigate (rank 1); target: none
     tells: none
   ticks 12..12 (1 tick)
-    affect: wary (changed from calm; caused by #11 Observation@10); attention 3000
+    affect: wary (changed from calm; caused by #11 observation@10); attention 3000
     ranking: investigate > advance; incumbent: investigate; selected: investigate (rank 1); target: none
     tells: hesitate
-  belief 3: door=south (Known); world: door=south -> agrees-with-world [tested]
-  belief 4: weather=rain (Suspected); world: none -> no-world-truth [tested]
-  belief 5: door=north (Unknown); world: door=south -> no-claim [tested]
+  belief 3: "door is south" (certain 10000..10000); in world truth -> agrees-with-world [tested]
+  belief 4: "weather is rain" (suspected 5500..9000); absent from world truth -> diverges-from-world [tested]
+  belief 5: "door is north" (unknown 3000..7000); absent from world truth -> no-claim [tested]
+  belief 6: as modelled by agent-a: "door is south" (believed 7500..9000); in world truth -> agrees-with-world [designed]
