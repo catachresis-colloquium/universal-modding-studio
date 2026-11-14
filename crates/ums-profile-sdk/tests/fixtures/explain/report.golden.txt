@@ -1,0 +1,41 @@
+explain report ums-explain/1
+inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
+profile: stub-profile 0.0.0; producer: stub abi 1.1
+leak-verdict: unverified (no counterfactual seam)
+
+agent ["agent-a","agent-b"]: commitment-override ticks: 0 of 0 [tested]
+  belief 6: door=south (Believed); world: door=south -> agrees-with-world [designed]
+
+agent agent-a: commitment-override ticks: 2 of 6 [tested]
+  ticks 10..11 (2 ticks)
+    affect: calm (initial); attention 1000..1200
+    ranking: advance > investigate; incumbent: advance; selected: advance (rank 1); target: none
+    tells: none
+  ticks 12..12 (1 tick)
+    affect: angry (changed from calm; caused by #12 ActionOutcome@12); attention 6000
+    ranking: engage > advance; incumbent: advance; selected: engage (rank 1); target: contact-1
+    tells: startle
+  ticks 13..14 (2 ticks)
+    affect: angry (unchanged); attention 7000..7500
+    ranking: evade > engage; incumbent: engage; selected: engage (rank 2); target: contact-1
+    tells: fixate
+    commitment-override [tested]
+  ticks 15..15 (1 tick)
+    affect: wary (changed from angry; caused by #17 Observation@14); attention 4000
+    ranking: evade > engage; incumbent: engage; selected: evade (rank 1); target: none
+    tells: hesitate
+  belief 1: door=north (Believed); world: door=south -> diverges-from-world [tested]
+  belief 2: alarm=off (Rejected); world: alarm=on -> agrees-with-world [tested]
+
+agent agent-b: commitment-override ticks: 0 of 2 [tested]
+  ticks 10..10 (1 tick)
+    affect: calm (initial); attention 900
+    ranking: investigate > advance; incumbent: investigate; selected: investigate (rank 1); target: none
+    tells: none
+  ticks 12..12 (1 tick)
+    affect: wary (changed from calm; caused by #11 Observation@10); attention 3000
+    ranking: investigate > advance; incumbent: investigate; selected: investigate (rank 1); target: none
+    tells: hesitate
+  belief 3: door=south (Known); world: door=south -> agrees-with-world [tested]
+  belief 4: weather=rain (Suspected); world: none -> no-world-truth [tested]
+  belief 5: door=north (Unknown); world: door=south -> no-claim [tested]

@@ -34,7 +34,58 @@ Rules:
 * the same input model, profile/compiler version and seed must produce the
   same trace, or the adapter must refuse the request.
 
-`ums-profile-sdk::SimulationAdapter` is the current tested interface seam.
-`adapters/enaction/preview-request.schema.json` records the host boundary.
-There is no real Enaction loader in this repository, so adapter integration is
-designed, not implemented.
+`ums-profile-sdk::SimulationAdapter` is the interface seam.
+`adapters/enaction/preview-request.schema.json` records the request and
+`adapters/enaction/preview-response.schema.json` the response.
+
+== ProcessPreviewAdapter (ADR-0019, Proposed)
+
+`ums_profile_sdk::preview::ProcessPreviewAdapter` is the first non-test
+`SimulationAdapter`. It runs a game's pre-built headless runner twice and a
+validator once, as separate processes over canonical data:
+
+[source,text]
+----
+ums-profile preview --runner PATH --validator PATH
+                    [--runner-arg ARG]... [--validator-arg ARG]...
+                    [--timeout-ms N] [--explain]
+----
+
+* argument array only, no shell; cleared environment; per-process timeout;
+  stdout cap; a bare command name is refused rather than searched on `PATH`;
+* a missing or non-executable binary is a failure (`MissingBinary`,
+  `NotExecutable`). There is no fallback and no stub outside tests;
+* the two runner outputs must be byte-identical, or the preview is refused
+  with `ReplayMismatch`;
+* the runner's stdout goes to the validator on stdin. Exit 0 accepts, exit 1
+  is `ValidatorRefused` with the validator's rule and field path, any other
+  exit is `ValidatorFailed`.
+
+Status: *tested against stub binaries* (`tests/process_preview.rs`). No real
+runner or validator with the route's flags exists yet, so integration with
+`idaptik-weevil-replay` and `enaction-validate` is *designed*, not tested
+(package B2 of `WEEVIL-HOST-ROUTE.adoc`).
+
+== Explain lens
+
+`ums-profile preview ... --explain` prints `replay-identical: ok`, the
+validator verdict and a designer report from `ums_profile_sdk::explain`. The
+lens reads one `enaction-runner-output/1` document and one
+`enaction-mind-trace/1` document, as `WEEVIL-HOST-ROUTE.adoc` defines them.
+Per agent and per tick window it shows the affect token and the events that
+caused each change, the candidate ranking (never a score), the incumbent,
+the selected candidate and its rank, and the tells. It derives
+`commitment-override` (selected equals incumbent and is not first in the
+ranking) and counts the override ticks per agent. Beliefs are shown beside
+the world-truth atoms of the same frame and marked `diverges-from-world`
+where they disagree.
+
+The report is canonical JSON (`ums-explain/1`, RFC 8785 for integer-only
+documents) plus a plain-text rendering, both pinned by golden files in
+`crates/ums-profile-sdk/tests/fixtures/explain`. Each derived row carries a
+guarantee level: `tested` where `tests/explain_golden.rs` covers it, and
+`designed` for beliefs whose holder is not a plain agent id.
+
+The leak verdict needs the counterfactual seam, which is deferred. The
+report always prints `leak-verdict: unverified (no counterfactual seam)` and
+never `no-leak`.

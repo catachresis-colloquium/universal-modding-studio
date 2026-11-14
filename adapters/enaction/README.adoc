@@ -3,8 +3,16 @@
 
 = Enaction preview adapter seam
 
-This directory contains the host-neutral request contract for a future
-optional Enaction Engine preview adapter. It is not a working adapter.
+This directory contains the host-neutral contracts of the optional Enaction
+preview adapter:
+
+* `preview-request.schema.json`: the request that
+  `SimulationAdapter::preview` writes to the runner's stdin;
+* `preview-response.schema.json`: the response that `ProcessPreviewAdapter`
+  returns after a replay-identical, validator-accepted preview.
+
+The adapter is `crates/ums-profile-sdk/src/preview.rs` (ADR-0019, Proposed).
+It is tested against stub binaries only; see `docs/ENACTION-ADAPTER.adoc`.
 
 The profile owns translation from its UMS model into runtime definitions.
 The adapter owns deterministic request/trace transport only. It must never

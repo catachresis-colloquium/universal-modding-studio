@@ -232,11 +232,27 @@ checkable property, but it is a statement about the *ABI's* internal
 consistency. It does not prove the Zig FFI on the other side of the boundary
 agrees; `docs/ABI-PARITY.adoc` covers what is tested on that side.
 
-=== "Python, TypeScript, ReScript and Go are not used"
+=== Language policy: the earlier "Python, TypeScript, ReScript and Go are not used" claim was false
+
+Corrected 2026-11-14. The earlier heading claimed that none of these languages
+is used. That is not true of the tree.
 
 Evidence::
-`git ls-files '*.py'` is empty. `.machine_readable/descriptiles/AGENTIC.a2ml` forbids
-them. `licence-hygiene.yml` gates attributability of every tracked file.
+* `apps/studio` is TypeScript (Vue 3, Vite, Bun): `git ls-files '*.ts'` lists
+  8 files there, for example `apps/studio/src/main.ts` and
+  `apps/studio/server/core.ts`.
+* `git ls-files '*.py'` is not empty. It lists
+  `profiles/idaptik/v1/optimisation/experiment.py`.
+* `git ls-files '*.res' '*.go'` is empty: no ReScript and no Go is tracked.
+* `.machine_readable/descriptiles/AGENTIC.a2ml` forbids TypeScript and
+  Python. No exemption for `apps/studio` or for the optimisation experiment is
+  recorded.
+
+Status::
+*Open, owner decision.* Either record an exemption or port the code (plan
+question Q5 in the Enaction completion plan). Until then the language policy
+is stated, not met. `licence-hygiene.yml` gates attributability of every
+tracked file; it does not gate language.
 
 == Where the evidence stops
 

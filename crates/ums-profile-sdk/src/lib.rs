@@ -12,6 +12,10 @@
 
 #![forbid(unsafe_code)]
 
+pub mod canonical;
+pub mod explain;
+pub mod preview;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::OnceLock;

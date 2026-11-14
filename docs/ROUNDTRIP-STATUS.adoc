@@ -3,9 +3,33 @@
 
 = Round-trip status
 
-Last assessed: 2026-08-29.
+Last assessed: 2026-11-14.
 
-== IDApTIK: executed and gated
+[IMPORTANT]
+.STALE: the "tested" and "CI-gated" claims below no longer hold
+====
+Checked 2026-11-14 against IDApTIK `44d142d`
+(`44d142d426da5fd85828b9ebc4fb8079dad42efb`, the head of its default branch):
+
+* `git ls-files` in IDApTIK lists no file whose name matches
+  `package-runner`, and the repository has no `examples/` directory;
+* `cargo run --locked -p idaptik-core --example package-runner` in that
+  checkout prints
+  `error: no example target named `package-runner` in `idaptik-core` package`.
+
+`just roundtrip-idaptik` and the "UMS to IDApTIK round trip through the real
+game loader" step of `rust-ci.yml` both invoke that example, so neither can
+pass against the current IDApTIK. The same failure is recorded in
+`profiles/idaptik/v1/optimisation/verification.json`.
+
+*Current status: designed, not tested.* The compile half (validation and
+byte-identical repeat compilation) still runs; the loader half has no loader
+to call. The six-line runner that restores it is Enaction completion-plan
+step 6(a), an owner-gated IDApTIK change. The history below is kept as the
+record of what was observed on 2026-07-27; it does not describe the present.
+====
+
+== IDApTIK: executed and gated (historical, 2026-07-27; see the notice above)
 
 `just roundtrip-idaptik` runs end to end. It compiles
 `profiles/idaptik/v1/ghost-lobby.ums.json` through the public
@@ -45,7 +69,7 @@ on 2026-07-27.
 checks the game out as a sibling, builds the game's own crate, and fails the
 build if the loader rejects the artifact or the replay diverges.
 
-**Status: tested.** Every clause of ADR-0014 is now met -- an authored fixture
+**Status (2026-07-28, now stale): tested.** Every clause of ADR-0014 was then met -- an authored fixture
 is validated, compiled, loaded by the real game loader, and compared with the
 post-edit model, including deterministic repeat output.
 

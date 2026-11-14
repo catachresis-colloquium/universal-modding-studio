@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= ADR-0019: Preview is processes over data seams
+
+Date: 2026-11-14
+
+== Status
+
+Proposed. Nothing here is accepted until the owner accepts it.
+
+Implements Enaction completion-plan step 19 and the replay rule of step 21,
+as retargeted by `WEEVIL-HOST-ROUTE.adoc` (package A4).
+
+== Context
+
+ADR-0010 keeps Enaction behind an optional adapter, and ADR-0016 forbids UMS
+in any shipped game's dependency graph. `SimulationAdapter` existed only as a
+trait with a test implementation, so "deterministic preview" was designed and
+not run.
+
+A preview needs code from two other parties: the game's headless runner and
+Enaction's validator. Linking either as a library would weld UMS to a game or
+to the AGPL kernel, and would let one party read another's memory. The
+Weevil route also requires that a closed engine can take part without linking
+AGPL code, which only works if every seam is a process or a versioned
+document.
+
+== Decision
+
+`ProcessPreviewAdapter` (`crates/ums-profile-sdk/src/preview.rs`) is the first
+non-test `SimulationAdapter`. It:
+
+. takes explicit paths to a runner binary and a validator binary. A bare
+  command name is refused (`NotExplicitPath`), because it would be resolved
+  through `PATH`. A missing file is `MissingBinary` and a non-executable one is
+  `NotExecutable`. There is no fallback and no stub outside tests;
+. launches each process with an argument array (no shell), a cleared
+  environment, a per-process timeout and a stdout cap;
+. runs the runner twice, as two separate processes, with the same input, and
+  refuses with `ReplayMismatch` unless both stdout byte strings are
+  identical. Replay identity is therefore checked inside every preview, not
+  only in a separate gate;
+. passes the runner's stdout to the validator on stdin. Exit 0 accepts.
+  Exit 1 is `ValidatorRefused`, carrying the validator's rule name and field
+  path. Any other exit is `ValidatorFailed`, so a broken invocation is never
+  reported as a bad document;
+. returns a response document described by
+  `adapters/enaction/preview-response.schema.json`.
+
+`ums-profile preview --runner PATH --validator PATH [--runner-arg ...]
+[--validator-arg ...] [--explain]` is the command-line form.
+
+UMS gains no Cargo dependency on Enaction or on any game. The adapter adds no
+dependency at all: it uses the standard library, `serde_json` and `clap`,
+which the crate already had.
+
+== Consequences
+
+* A designer's preview is replay-checked by construction, and a
+  nondeterministic runner is refused, never averaged or retried.
+* The validator, not UMS, is the authority on the documents. UMS checks only
+  what it must to read them: UTF-8, one JSON document per line, integers
+  within +-(2^53-1).
+* The runner and validator command lines are Enaction's and the game's to
+  define. Until package B2 swaps the stubs for the real binaries, the
+  pipeline is tested against stub binaries only.
+
+== Guarantees
+
+[cols="3,1,4",options="header"]
+|===
+| Claim | Level | Evidence
+
+| missing, non-executable or bare-name binaries fail
+| tested
+| `tests/process_preview.rs`: `missing_runner_binary_fails_the_preview`,
+  `missing_validator_binary_fails_before_the_runner_runs`,
+  `non_executable_binary_fails_the_preview`,
+  `bare_command_name_is_refused_rather_than_searched_on_path`
+
+| two differing runner processes are refused with `ReplayMismatch`
+| tested
+| `nondeterministic_runner_is_refused_with_replay_mismatch`,
+  `cli_preview_refuses_a_nondeterministic_runner`; a mutant that skips the
+  comparison fails both
+
+| the environment is cleared
+| tested
+| `environment_is_cleared_for_the_runner`,
+  `cli_preview_clears_the_environment`; a mutant without `env_clear` fails
+  both
+
+| validator exit 1 names rule and path; other exits are operational
+| tested
+| `validator_exit_1_is_a_refusal_that_names_rule_and_path`,
+  `validator_operational_failure_is_not_reported_as_a_refusal`
+
+| timeout and stdout cap
+| tested
+| `hanging_runner_is_timed_out`, `flooding_runner_hits_the_stdout_cap`
+
+| a timed-out runner's own child processes are also stopped
+| aspirational
+| only the direct child is killed. A runner that forks keeps its children
+  alive; a process-group kill needs platform code not written here
+
+| the preview works against the real IDApTIK runner and `enaction-validate`
+| designed
+| package B2. Neither binary exists yet with the flags this route names
+|===
+
+== Open questions for reconciliation
+
+* The validator's command line and fault format belong to package A2. The
+  adapter reads a fault as one JSON object `{"rule", "path"}` or
+  `{"faults": [{"rule", "path"}, ...]}` on stdout or stderr.
+* How the runner emits two documents is not fixed by the route. The adapter
+  reads one JSON document per line of stdout and passes the whole stream to
+  the validator.

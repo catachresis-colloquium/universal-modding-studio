@@ -1,0 +1,21 @@
+{
+  "package": {
+    "events": [
+      {"event_id": 11, "sequence": 0, "tick": 10, "observer": "agent-b", "kind": "Observation"},
+      {"event_id": 12, "sequence": 0, "tick": 12, "observer": "agent-a", "kind": "ActionOutcome"},
+      {"event_id": 17, "sequence": 1, "tick": 14, "observer": "agent-a", "kind": "Observation"}
+    ],
+    "beliefs": [
+      {"belief_id": 1, "holder": "agent-a", "proposition": {"frame": "door", "hypothesis": "north"}, "status": "Believed", "source_events": [11]},
+      {"belief_id": 2, "holder": "agent-a", "proposition": {"frame": "alarm", "hypothesis": "off"}, "status": "Rejected", "source_events": [12]},
+      {"belief_id": 3, "holder": "agent-b", "proposition": {"frame": "door", "hypothesis": "south"}, "status": "Known", "source_events": [11]},
+      {"belief_id": 4, "holder": "agent-b", "proposition": {"frame": "weather", "hypothesis": "rain"}, "status": "Suspected", "source_events": [11]},
+      {"belief_id": 5, "holder": "agent-b", "proposition": {"frame": "door", "hypothesis": "north"}, "status": "Unknown", "source_events": [11]},
+      {"belief_id": 6, "holder": ["agent-a", "agent-b"], "proposition": {"frame": "door", "hypothesis": "south"}, "status": "Believed", "source_events": [17]}
+    ]
+  },
+  "world_truth": [
+    {"frame": "door", "hypothesis": "south"},
+    {"frame": "alarm", "hypothesis": "on"}
+  ]
+}

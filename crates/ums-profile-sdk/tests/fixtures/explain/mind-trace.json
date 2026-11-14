@@ -1,0 +1,20 @@
+{
+  "contract": "enaction-mind-trace/1",
+  "producer": {"kernel": "stub", "abi": "1.1"},
+  "profile": {"id": "stub-profile", "version": "0.0.0"},
+  "vocabulary": {
+    "affect_tokens": ["calm", "wary", "afraid", "angry"],
+    "candidates": ["advance", "investigate", "engage", "evade", "reload"],
+    "tells": ["hesitate", "startle", "fixate"]
+  },
+  "ticks": [
+    {"tick": 10, "agent": "agent-a", "affect": {"token": "calm", "attention": 1000, "caused_by": []}, "conation": {"ranking": ["advance", "investigate"], "incumbent": "advance", "selected": "advance"}, "tells": []},
+    {"tick": 10, "agent": "agent-b", "affect": {"token": "calm", "attention": 900, "caused_by": []}, "conation": {"ranking": ["investigate", "advance"], "incumbent": "investigate", "selected": "investigate"}, "tells": []},
+    {"tick": 11, "agent": "agent-a", "affect": {"token": "calm", "attention": 1200, "caused_by": []}, "conation": {"ranking": ["advance", "investigate"], "incumbent": "advance", "selected": "advance"}, "tells": []},
+    {"tick": 12, "agent": "agent-a", "affect": {"token": "angry", "attention": 6000, "caused_by": [12]}, "conation": {"ranking": ["engage", "advance"], "incumbent": "advance", "selected": "engage", "target": "contact-1"}, "tells": ["startle"]},
+    {"tick": 12, "agent": "agent-b", "affect": {"token": "wary", "attention": 3000, "caused_by": [11]}, "conation": {"ranking": ["investigate", "advance"], "incumbent": "investigate", "selected": "investigate"}, "tells": ["hesitate"]},
+    {"tick": 13, "agent": "agent-a", "affect": {"token": "angry", "attention": 7500, "caused_by": []}, "conation": {"ranking": ["evade", "engage"], "incumbent": "engage", "selected": "engage", "target": "contact-1"}, "tells": ["fixate"]},
+    {"tick": 14, "agent": "agent-a", "affect": {"token": "angry", "attention": 7000, "caused_by": [17]}, "conation": {"ranking": ["evade", "engage"], "incumbent": "engage", "selected": "engage", "target": "contact-1"}, "tells": ["fixate"]},
+    {"tick": 15, "agent": "agent-a", "affect": {"token": "wary", "attention": 4000, "caused_by": [17]}, "conation": {"ranking": ["evade", "engage"], "incumbent": "engage", "selected": "evade"}, "tells": ["hesitate"]}
+  ]
+}
