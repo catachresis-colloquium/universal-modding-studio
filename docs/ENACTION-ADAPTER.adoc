@@ -90,7 +90,10 @@ Status:
   pair exits 0 from `enaction-validate` is IDApTIK's recorded claim;
 * the preview against the real binaries: an `#[ignore]`d test,
   `tests/real_chain.rs`, that needs `ENACTION_VALIDATE` and
-  `IDAPTIK_WEEVIL_REPLAY`. It is not run in CI.
+  `IDAPTIK_WEEVIL_REPLAY`. It is not run in CI. All 5 of its tests passed
+  by hand on 2026-11-14 against enaction-engine `d74a140`, evil-weevil
+  `c655f46` and IDApTIK `22797e0`. `just preview-weevil` runs the same
+  chain for one scenario.
 
 `docs/DESIGNER-QUICKSTART.adoc` has the commands.
 
