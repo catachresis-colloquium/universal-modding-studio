@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # Distinguish untracked implementation debt from prose, templates, generated
 # metadata, and issue-linked work. Proof circumventions remain a separate,
 # stricter check over proof languages only.
