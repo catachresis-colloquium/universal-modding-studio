@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 //! Documents written by the real IDApTIK corridor runner
 //! (`idaptik-weevil-replay`, Evil Weevil kernel, ABI 1.1), vendored by
 //! digest from IDApTIK `crates/idaptik-weevil/tests/fixtures/enaction` at

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 //! Shared helpers for the vendored-document tests.
 //!
 //! A vendored directory holds an upstream file set and its `SHA256SUMS`,

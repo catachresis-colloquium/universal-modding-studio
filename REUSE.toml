@@ -172,3 +172,43 @@ path = ["apps/studio/package.json", "apps/studio/tsconfig.json", "apps/studio/ts
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Weevil route B2 (#107, #108). Vendored upstream documents, byte copies that
+# must not be edited (their SHA256SUMS are checked by
+# crates/ums-profile-sdk/tests/vendored_*.rs), so they cannot take a header.
+# Each upstream package is AGPL-3.0-or-later. `closest` lets a vendored file
+# that carries its own header (README.adoc is CC-BY-SA-4.0) keep it.
+[[annotations]]
+path = "vendor/enaction/**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Enaction Engine contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = "vendor/idaptik/**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 IDApTIK contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# The provenance records beside the vendored copies are written here, not
+# upstream. Listed after the vendor globs because the last match applies.
+[[annotations]]
+path = "vendor/*/PROVENANCE.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Explain-lens golden reports over the vendored corridor documents, and the
+# stub policies for the preview protocol tests. JSON and plain-text goldens
+# are compared byte for byte, so they cannot take a header.
+[[annotations]]
+path = "crates/ums-profile-sdk/tests/fixtures/weevil-corridor/*"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = "crates/ums-profile-sdk/tests/fixtures/preview/policies.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
