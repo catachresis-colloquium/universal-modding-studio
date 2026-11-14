@@ -16,6 +16,11 @@ serde_json.workspace = true
 clap.workspace = true
 ums-profiles = { path = "../ums-profiles" }
 
+[dev-dependencies]
+# SHA-256 for the vendored-corpus digest tests. Already in Cargo.lock
+# through ums-profiles; no new crate.
+sha2 = "0.10"
+
 [[bin]]
 name = "ums-profile"
 path = "src/main.rs"
