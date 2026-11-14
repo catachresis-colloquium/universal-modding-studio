@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/catachresis-colloquium/universal-modding-studio/blob/main/adapters/enaction/preview-response.schema.json",
+  "title": "UMS process preview response",
+  "description": "Written by ProcessPreviewAdapter (crates/ums-profile-sdk/src/preview.rs) only after the runner ran twice as separate processes with byte-identical stdout and the validator exited 0. A refused or failed preview produces no response document. Numbers are integers within +-(2^53-1).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["adapterContract", "replay", "runnerStdoutBytes", "validation", "documents"],
+  "properties": {
+    "adapterContract": {
+      "const": "ums-enaction-preview-response/1"
+    },
+    "replay": {
+      "description": "Both runner processes wrote identical bytes. A difference is refused as ReplayMismatch, so no other value exists.",
+      "const": "identical"
+    },
+    "runnerStdoutBytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exit", "stdout"],
+      "properties": {
+        "exit": { "const": 0 },
+        "stdout": { "type": "string" }
+      }
+    },
+    "documents": {
+      "description": "The runner's stdout, one JSON document per line, in order. The documents the explain lens reads are the runner output (the enaction-runner-output/1 envelope, which carries the world-truth atoms) and the enaction-mind-trace/1 document. Their full schemas belong to Enaction; only the members UMS reads are named here.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "anyOf": [
+          { "$ref": "#/$defs/runnerOutput" },
+          { "$ref": "#/$defs/mindTrace" },
+          { "type": "object" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "runnerOutput": {
+      "description": "enaction-runner-output/1: {package, world_truth: [atom], ledger_trace?}. UMS reads package.beliefs, package.events and world_truth.",
+      "type": "object",
+      "required": ["package", "world_truth"],
+      "properties": {
+        "package": { "type": "object" },
+        "world_truth": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["frame", "hypothesis"],
+            "properties": {
+              "frame": { "type": "string" },
+              "hypothesis": { "type": "string" }
+            }
+          }
+        },
+        "ledger_trace": {}
+      }
+    },
+    "mindTrace": {
+      "description": "enaction-mind-trace/1, as defined in enaction-engine docs/proposals/WEEVIL-HOST-ROUTE.adoc.",
+      "type": "object",
+      "required": ["contract", "producer", "profile", "vocabulary", "ticks"],
+      "properties": {
+        "contract": { "const": "enaction-mind-trace/1" }
+      }
+    }
+  }
+}

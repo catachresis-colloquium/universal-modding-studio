@@ -34,7 +34,34 @@ Rules:
 * the same input model, profile/compiler version and seed must produce the
   same trace, or the adapter must refuse the request.
 
-`ums-profile-sdk::SimulationAdapter` is the current tested interface seam.
-`adapters/enaction/preview-request.schema.json` records the host boundary.
-There is no real Enaction loader in this repository, so adapter integration is
-designed, not implemented.
+`ums-profile-sdk::SimulationAdapter` is the interface seam.
+`adapters/enaction/preview-request.schema.json` records the request and
+`adapters/enaction/preview-response.schema.json` the response.
+
+== ProcessPreviewAdapter (ADR-0019, Proposed)
+
+`ums_profile_sdk::preview::ProcessPreviewAdapter` is the first non-test
+`SimulationAdapter`. It runs a game's pre-built headless runner twice and a
+validator once, as separate processes over canonical data:
+
+[source,text]
+----
+ums-profile preview --runner PATH --validator PATH
+                    [--runner-arg ARG]... [--validator-arg ARG]...
+                    [--timeout-ms N] [--explain]
+----
+
+* argument array only, no shell; cleared environment; per-process timeout;
+  stdout cap; a bare command name is refused rather than searched on `PATH`;
+* a missing or non-executable binary is a failure (`MissingBinary`,
+  `NotExecutable`). There is no fallback and no stub outside tests;
+* the two runner outputs must be byte-identical, or the preview is refused
+  with `ReplayMismatch`;
+* the runner's stdout goes to the validator on stdin. Exit 0 accepts, exit 1
+  is `ValidatorRefused` with the validator's rule and field path, any other
+  exit is `ValidatorFailed`.
+
+Status: *tested against stub binaries* (`tests/process_preview.rs`). No real
+runner or validator with the route's flags exists yet, so integration with
+`idaptik-weevil-replay` and `enaction-validate` is *designed*, not tested
+(package B2 of `WEEVIL-HOST-ROUTE.adoc`).

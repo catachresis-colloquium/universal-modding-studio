@@ -4,7 +4,9 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use std::process::ExitCode;
+use std::time::Duration;
 use ums_profile_sdk::ProfileRegistry;
+use ums_profile_sdk::preview::ProcessPreviewAdapter;
 
 #[derive(Parser)]
 #[command(
@@ -43,6 +45,25 @@ enum Command {
         profile: PathBuf,
         #[arg(long)]
         fixture: PathBuf,
+    },
+    /// Run a pre-built headless runner twice and a validator once, as
+    /// separate processes, and print the replay-checked response (ADR-0019).
+    Preview {
+        /// Explicit path to the runner binary.
+        #[arg(long)]
+        runner: PathBuf,
+        /// Explicit path to the validator binary.
+        #[arg(long)]
+        validator: PathBuf,
+        /// One runner argument; repeat for more. Passed as an argument array.
+        #[arg(long = "runner-arg", allow_hyphen_values = true)]
+        runner_args: Vec<String>,
+        /// One validator argument; repeat for more.
+        #[arg(long = "validator-arg", allow_hyphen_values = true)]
+        validator_args: Vec<String>,
+        /// Per-process timeout in milliseconds.
+        #[arg(long, default_value_t = 60_000)]
+        timeout_ms: u64,
     },
 }
 
@@ -87,6 +108,33 @@ fn run(command: Command) -> Result<String, String> {
                 .map_err(|error| error.to_string())?;
             Ok(format!("valid {}", fixture.display()))
         }
+        Command::Preview {
+            runner,
+            validator,
+            runner_args,
+            validator_args,
+            timeout_ms,
+        } => preview(runner, validator, runner_args, validator_args, timeout_ms),
+    }
+}
+
+fn preview(
+    runner: PathBuf,
+    validator: PathBuf,
+    runner_args: Vec<String>,
+    validator_args: Vec<String>,
+    timeout_ms: u64,
+) -> Result<String, String> {
+    let outcome = ProcessPreviewAdapter::new(runner, validator)
+        .with_runner_args(runner_args)
+        .with_validator_args(validator_args)
+        .with_timeout(Duration::from_millis(timeout_ms))
+        .run(None)
+        .map_err(|error| error.to_string())?;
+    {
+        let response = outcome.response().map_err(|error| error.to_string())?;
+        ums_profile_sdk::canonical::to_canonical_string(&response)
+            .map_err(|error| error.to_string())
     }
 }
 
