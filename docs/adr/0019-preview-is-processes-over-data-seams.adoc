@@ -182,15 +182,18 @@ section 9's, and the runner emits one file per document.
 
 | the same against the real `enaction-validate` (digest rule on a tampered
   real runner output)
-| designed (test written, not run here)
+| tested by hand on the real chain, 2026-11-14; not in CI
 | `tests/real_chain.rs`,
   `a_tampered_runner_output_is_refused_by_the_real_validator_with_the_digest_rule`;
   `#[ignore]`d, needs `ENACTION_VALIDATE` and `IDAPTIK_WEEVIL_REPLAY`
 
 | the preview works against the real IDApTIK runner and `enaction-validate`
-| designed (test written, not run here)
+| tested by hand on the real chain, 2026-11-14; not in CI
 | `tests/real_chain.rs`, run by name with `--ignored`; it fails, never
-  passes, when either variable is unset
+  passes, when either variable is unset. All 5 tests passed against
+  enaction-engine `d74a140`, evil-weevil `c655f46` and IDApTIK `22797e0`,
+  including `the_grudge_cli_preview_matches_its_golden_report` (B2's
+  done_when). CI builds no sibling binaries, so this is not a CI gate
 
 | a timed-out runner's own child processes are also stopped
 | aspirational

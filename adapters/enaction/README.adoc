@@ -17,7 +17,8 @@ The adapter is `crates/ums-profile-sdk/src/preview.rs` (ADR-0019, Proposed).
 Its protocol is tested against stub binaries that copy the real command
 lines; the explain lens is tested on documents the real runner wrote
 (`vendor/idaptik/weevil-corridor`). A preview against the real binaries is an
-ignored test, not run in CI; see `docs/ENACTION-ADAPTER.adoc` and
+ignored test, not run in CI (it passed by hand on 2026-11-14); see
+`docs/ENACTION-ADAPTER.adoc` and
 `docs/DESIGNER-QUICKSTART.adoc`.
 
 The profile owns translation from its UMS model into runtime definitions.

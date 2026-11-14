@@ -132,6 +132,38 @@ fn cautious_sentry_previews_with_every_belief_agreeing() {
     );
 }
 
+/// Package B2's done_when, through the command a designer runs: the
+/// preview of "the grudge" prints `replay-identical: ok`, reports at least
+/// one commitment-override tick, and matches its golden report. The golden
+/// is rendered from the vendored (unvalidated) documents, so the CLI form
+/// differs only in its two header lines and the validation state.
+#[test]
+#[ignore = "needs the real enaction-validate and idaptik-weevil-replay (ENACTION_VALIDATE, IDAPTIK_WEEVIL_REPLAY)"]
+fn the_grudge_cli_preview_matches_its_golden_report() {
+    let stdout = cli_preview("the-grudge", true);
+    let golden = fs::read_to_string(repo_root().join(
+        "crates/ums-profile-sdk/tests/fixtures/weevil-corridor/the-grudge.report.golden.txt",
+    ))
+    .expect("the-grudge text golden");
+    assert_eq!(
+        golden.matches("(not-validated)").count(),
+        1,
+        "the golden names its validation state exactly once"
+    );
+    let expected = format!(
+        "replay-identical: ok\nvalidator: accepted (exit 0)\n{}",
+        golden.replacen("(not-validated)", "(validator-accepted)", 1)
+    );
+    assert!(
+        stdout.contains("commitment-override ticks: 37 of 200"),
+        "{stdout}"
+    );
+    assert_eq!(
+        stdout, expected,
+        "the-grudge CLI report differs from its golden"
+    );
+}
+
 /// The library adapter with both documents, for the mind scenarios.
 fn adapter(profile: &str) -> ProcessPreviewAdapter {
     let bin = binaries();
