@@ -76,7 +76,7 @@ A real run first prints `replay-identical: ok` and `validator: accepted
 *The output below is not from a run of the command above.* It is the explain
 lens over the decoy-lure document that the real runner wrote, vendored by
 digest in `vendor/idaptik/weevil-corridor/decoy-lure.runner-output.json`
-(IDApTIK at `87b47a6`). No validator ran on it here, so its inputs line says
+(IDApTIK `main` at `22797e0`; first vendored from `87b47a6`). No validator ran on it here, so its inputs line says
 `(not-validated)`, and the two header lines of a live preview are missing.
 It is pinned byte for byte as
 `crates/ums-profile-sdk/tests/fixtures/weevil-corridor/decoy-lure.report.golden.txt`.
