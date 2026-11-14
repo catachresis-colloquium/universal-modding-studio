@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::Duration;
 use ums_profile_sdk::ProfileRegistry;
-use ums_profile_sdk::preview::ProcessPreviewAdapter;
+use ums_profile_sdk::preview::{MIND_TRACE_SLOT, ProcessPreviewAdapter, RUNNER_OUTPUT_SLOT};
 
 #[derive(Parser)]
 #[command(
@@ -48,17 +48,34 @@ enum Command {
     },
     /// Run a pre-built headless runner twice and a validator once, as
     /// separate processes, and print the replay-checked response (ADR-0019).
+    ///
+    /// Each document crosses as its own file. The runner's argument
+    /// template may name the files with the whole arguments
+    /// `{runner_output}` and `{mind_trace}`; `--runner-output-flag F` and
+    /// `--mind-trace-flag F` append `F {runner_output}` and
+    /// `F {mind_trace}` for a runner such as `idaptik-weevil-replay`.
     Preview {
         /// Explicit path to the runner binary.
         #[arg(long)]
         runner: PathBuf,
-        /// Explicit path to the validator binary.
+        /// Explicit path to the validator binary (`enaction-validate`).
         #[arg(long)]
         validator: PathBuf,
+        /// The caller's `enaction-policies/1` file, passed as `--policies`.
+        #[arg(long)]
+        policies: PathBuf,
         /// One runner argument; repeat for more. Passed as an argument array.
         #[arg(long = "runner-arg", allow_hyphen_values = true)]
         runner_args: Vec<String>,
-        /// One validator argument; repeat for more.
+        /// Runner flag that takes the runner-output path, for example
+        /// `--emit-epistemic`.
+        #[arg(long, allow_hyphen_values = true)]
+        runner_output_flag: Option<String>,
+        /// Runner flag that takes the mind-trace path, for example
+        /// `--emit-mind-trace`. Without it the preview has no mind trace.
+        #[arg(long, allow_hyphen_values = true)]
+        mind_trace_flag: Option<String>,
+        /// One extra validator argument; repeat for more.
         #[arg(long = "validator-arg", allow_hyphen_values = true)]
         validator_args: Vec<String>,
         /// Per-process timeout in milliseconds.
@@ -114,37 +131,43 @@ fn run(command: Command) -> Result<String, String> {
         Command::Preview {
             runner,
             validator,
-            runner_args,
+            policies,
+            mut runner_args,
+            runner_output_flag,
+            mind_trace_flag,
             validator_args,
             timeout_ms,
             explain,
-        } => preview(
-            runner,
-            validator,
-            runner_args,
-            validator_args,
-            timeout_ms,
-            explain,
-        ),
+        } => {
+            if let Some(flag) = runner_output_flag {
+                runner_args.extend([flag, RUNNER_OUTPUT_SLOT.to_owned()]);
+            }
+            if let Some(flag) = mind_trace_flag {
+                runner_args.extend([flag, MIND_TRACE_SLOT.to_owned()]);
+            }
+            let adapter = ProcessPreviewAdapter::new(runner, validator)
+                .with_policies(policies)
+                .with_runner_args(runner_args)
+                .with_validator_args(validator_args)
+                .with_timeout(Duration::from_millis(timeout_ms));
+            preview(&adapter, explain)
+        }
     }
 }
 
-fn preview(
-    runner: PathBuf,
-    validator: PathBuf,
-    runner_args: Vec<String>,
-    validator_args: Vec<String>,
-    timeout_ms: u64,
-    explain: bool,
-) -> Result<String, String> {
-    let outcome = ProcessPreviewAdapter::new(runner, validator)
-        .with_runner_args(runner_args)
-        .with_validator_args(validator_args)
-        .with_timeout(Duration::from_millis(timeout_ms))
-        .run(None)
-        .map_err(|error| error.to_string())?;
+fn preview(adapter: &ProcessPreviewAdapter, explain: bool) -> Result<String, String> {
+    let outcome = adapter.run(None).map_err(|error| error.to_string())?;
     if explain {
-        let documents = outcome.documents().map_err(|error| error.to_string())?;
+        let mut documents = vec![
+            outcome
+                .runner_output_document()
+                .map_err(|error| error.to_string())?,
+        ];
+        documents.extend(
+            outcome
+                .mind_trace_document()
+                .map_err(|error| error.to_string())?,
+        );
         let report = ums_profile_sdk::explain::explain_documents(&documents, true)
             .map_err(|error| error.to_string())?;
         Ok(format!(

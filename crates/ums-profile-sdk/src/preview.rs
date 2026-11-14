@@ -3,49 +3,74 @@
 
 //! `ProcessPreviewAdapter`: preview is processes over data seams (ADR-0019).
 //!
-//! The adapter runs a game's pre-built headless runner and then a validator
-//! as separate processes. UMS links neither: both are explicit paths to
-//! binaries, launched with an argument array (no shell), a cleared
+//! The adapter runs a game's pre-built headless runner and then Enaction's
+//! validator as separate processes. UMS links neither: both are explicit
+//! paths to binaries, launched with an argument array (no shell), a cleared
 //! environment, a timeout and a stdout size cap.
+//!
+//! Documents cross as files, one document per file, as
+//! `idaptik-weevil-replay` writes them (`--emit-epistemic PATH
+//! [--emit-mind-trace PATH]`). The caller gives the runner's argument
+//! template; the whole arguments [`RUNNER_OUTPUT_SLOT`] and
+//! [`MIND_TRACE_SLOT`] are replaced with paths that the adapter chooses.
 //!
 //! Pipeline:
 //!
-//! 1. check that both binaries exist and are executable (no fallback);
-//! 2. run the runner twice, as two separate processes, with the same input;
-//! 3. refuse with [`PreviewError::ReplayMismatch`] unless both stdout byte
-//!    strings are identical;
-//! 4. pass the runner's stdout to the validator on stdin;
-//! 5. validator exit 0 is acceptance; exit 1 is a refusal carrying the
-//!    validator's rule name and field path; any other exit is an
-//!    operational failure of the validator.
+//! 1. check that both binaries exist and are executable, and that the
+//!    caller's policies file exists (no fallback);
+//! 2. create one private temporary directory (mode 0700 on Unix) with a
+//!    subdirectory per run, removed when the preview ends;
+//! 3. run the runner twice, as two separate processes, each writing into its
+//!    own subdirectory;
+//! 4. read each document with a size cap and refuse with
+//!    [`PreviewError::ReplayMismatch`] unless each pair is byte-identical.
+//!    The runners' stdout is not compared: a runner may print the paths it
+//!    wrote, which differ between the runs by construction;
+//! 5. run `validator --policies FILE [--mind-trace FILE] [extra...]` with
+//!    the runner output on stdin (CAC-KERNEL section 9). Exit 0 is
+//!    acceptance; exit 1 is a refusal, read from the one canonical line
+//!    `{"faults":[{"detail","path","rule"}]}` on stdout; any other exit is
+//!    an operational failure of the validator.
+//!
+//! The mind trace is optional: a template without [`MIND_TRACE_SLOT`]
+//! previews the runner output alone.
 //!
 //! There is no stub and no fallback here. The stub binaries used by the
 //! protocol tests live under `tests/fixtures/preview`.
 
 use crate::SimulationAdapter;
 use crate::canonical::{self, CanonicalError};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use std::ffi::OsString;
 use std::fmt;
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 /// Contract tag of the response document (`preview-response.schema.json`).
-pub const PREVIEW_RESPONSE_CONTRACT: &str = "ums-enaction-preview-response/1";
+pub const PREVIEW_RESPONSE_CONTRACT: &str = "ums-enaction-preview-response/2";
 /// Contract tag of the request document (`preview-request.schema.json`).
 pub const PREVIEW_REQUEST_CONTRACT: &str = "ums-enaction-preview/1";
+/// Runner argument replaced by the path of the runner-output file.
+pub const RUNNER_OUTPUT_SLOT: &str = "{runner_output}";
+/// Runner argument replaced by the path of the mind-trace file.
+pub const MIND_TRACE_SLOT: &str = "{mind_trace}";
 /// Default per-process timeout.
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 /// Default stdout cap per process (16 MiB).
 pub const DEFAULT_STDOUT_CAP: usize = 16 * 1024 * 1024;
+/// Default size cap per document file (64 MiB).
+pub const DEFAULT_DOCUMENT_CAP: usize = 64 * 1024 * 1024;
 /// Stderr kept for diagnostics; the rest is drained and dropped.
 const STDERR_KEEP: usize = 8 * 1024;
 const POLL: Duration = Duration::from_millis(5);
+
+const RUNNER_OUTPUT: &str = "runner-output";
+const MIND_TRACE: &str = "mind-trace";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Role {
@@ -70,6 +95,8 @@ pub enum PreviewError {
     NotExecutable { role: Role, path: PathBuf },
     /// A bare command name, which would be resolved through `PATH`.
     NotExplicitPath { role: Role, path: PathBuf },
+    /// The caller's policies file does not exist or is not a file.
+    MissingPolicies { path: PathBuf },
     /// The operating system refused to start the process.
     Spawn { role: Role, detail: String },
     /// The process did not finish within the timeout and was killed.
@@ -82,23 +109,38 @@ pub enum PreviewError {
         status: String,
         stderr: String,
     },
-    /// The two runner processes wrote different bytes.
+    /// The runner exited 0 without writing a document it was asked for.
+    MissingDocument { run: u8, document: &'static str },
+    /// A document file is larger than the document cap.
+    DocumentTooLarge {
+        run: u8,
+        document: &'static str,
+        cap: usize,
+    },
+    /// The two runner processes wrote different bytes into one document.
     ReplayMismatch {
+        document: &'static str,
         first_len: usize,
         second_len: usize,
         first_difference: usize,
     },
-    /// The validator exited 1: the documents are refused.
+    /// The validator exited 1: the documents are refused. `rule`, `path`
+    /// and `detail` are those of the first fault; `more` counts the rest.
     ValidatorRefused {
         rule: Option<String>,
         path: Option<String>,
         detail: String,
+        more: usize,
     },
     /// The validator exited with any status other than 0 or 1.
     ValidatorFailed { status: String, stderr: String },
-    /// The runner's stdout is not a sequence of integer-only JSON documents.
-    MalformedRunnerOutput { detail: String },
-    /// A request could not be built (for example, no profile reference).
+    /// A document is not one integer-only JSON value.
+    MalformedDocument {
+        document: &'static str,
+        detail: String,
+    },
+    /// A request could not be built (no profile reference, no policies, an
+    /// ambiguous runner template, or an unusable temporary directory).
     BadRequest { detail: String },
 }
 
@@ -109,14 +151,17 @@ impl PreviewError {
             Self::MissingBinary { .. } => "MissingBinary",
             Self::NotExecutable { .. } => "NotExecutable",
             Self::NotExplicitPath { .. } => "NotExplicitPath",
+            Self::MissingPolicies { .. } => "MissingPolicies",
             Self::Spawn { .. } => "Spawn",
             Self::Timeout { .. } => "Timeout",
             Self::OutputTooLarge { .. } => "OutputTooLarge",
             Self::RunnerFailed { .. } => "RunnerFailed",
+            Self::MissingDocument { .. } => "MissingDocument",
+            Self::DocumentTooLarge { .. } => "DocumentTooLarge",
             Self::ReplayMismatch { .. } => "ReplayMismatch",
             Self::ValidatorRefused { .. } => "ValidatorRefused",
             Self::ValidatorFailed { .. } => "ValidatorFailed",
-            Self::MalformedRunnerOutput { .. } => "MalformedRunnerOutput",
+            Self::MalformedDocument { .. } => "MalformedDocument",
             Self::BadRequest { .. } => "BadRequest",
         }
     }
@@ -139,6 +184,9 @@ impl fmt::Display for PreviewError {
                 "{role} '{}' is a bare name; give an explicit path (no PATH search)",
                 path.display()
             ),
+            Self::MissingPolicies { path } => {
+                write!(f, "policies file not found at {}", path.display())
+            }
             Self::Spawn { role, detail } => write!(f, "could not start {role}: {detail}"),
             Self::Timeout { role, limit } => {
                 write!(f, "{role} did not finish within {} ms", limit.as_millis())
@@ -155,31 +203,52 @@ impl fmt::Display for PreviewError {
                 "runner run {run} failed ({status}): {}",
                 stderr.trim_end()
             ),
+            Self::MissingDocument { run, document } => {
+                write!(f, "runner run {run} exited 0 but wrote no {document} file")
+            }
+            Self::DocumentTooLarge { run, document, cap } => write!(
+                f,
+                "runner run {run} wrote a {document} file larger than {cap} bytes"
+            ),
             Self::ReplayMismatch {
+                document,
                 first_len,
                 second_len,
                 first_difference,
             } => write!(
                 f,
-                "two runner processes wrote different bytes ({first_len} and {second_len} bytes; first difference at byte {first_difference})"
+                "two runner processes wrote different {document} bytes ({first_len} and {second_len} bytes; first difference at byte {first_difference})"
             ),
-            Self::ValidatorRefused { rule, path, detail } => write!(
-                f,
-                "validator refused the documents: rule {} at {}{}",
-                rule.as_deref().unwrap_or("<unnamed>"),
-                path.as_deref().unwrap_or("<no path>"),
-                if detail.is_empty() {
-                    String::new()
-                } else {
-                    format!(" ({})", detail.trim_end())
+            Self::ValidatorRefused {
+                rule,
+                path,
+                detail,
+                more,
+            } => {
+                write!(
+                    f,
+                    "validator refused the documents: rule {} at {}",
+                    rule.as_deref().unwrap_or("<unnamed>"),
+                    path.as_deref().unwrap_or("<no path>"),
+                )?;
+                if !detail.is_empty() {
+                    write!(f, " ({})", detail.trim_end())?;
                 }
-            ),
+                if *more > 0 {
+                    write!(
+                        f,
+                        "; and {more} more fault{}",
+                        if *more == 1 { "" } else { "s" }
+                    )?;
+                }
+                Ok(())
+            }
             Self::ValidatorFailed { status, stderr } => write!(
                 f,
                 "validator could not run ({status}): {}",
                 stderr.trim_end()
             ),
-            Self::MalformedRunnerOutput { detail } => f.write_str(detail),
+            Self::MalformedDocument { document, detail } => write!(f, "{document}: {detail}"),
             Self::BadRequest { detail } => f.write_str(detail),
         }
     }
@@ -190,62 +259,163 @@ impl std::error::Error for PreviewError {}
 /// The captured result of one accepted preview.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreviewOutcome {
-    /// Runner stdout; identical across both runs.
+    /// The runner-output file; identical across both runs.
+    pub runner_output: Vec<u8>,
+    /// The mind-trace file, when the template asked for one; identical
+    /// across both runs.
+    pub mind_trace: Option<Vec<u8>>,
+    /// Stdout of the first runner process. Not compared between runs.
     pub runner_stdout: Vec<u8>,
     /// Validator stdout (exit 0).
     pub validator_stdout: Vec<u8>,
 }
 
 impl PreviewOutcome {
-    /// Parse runner stdout as newline-separated JSON documents, each
-    /// integer-only within +-(2^53-1). Blank lines are ignored.
-    pub fn documents(&self) -> Result<Vec<Value>, PreviewError> {
-        parse_documents(&self.runner_stdout)
+    /// The runner output as one integer-only JSON value.
+    pub fn runner_output_document(&self) -> Result<Value, PreviewError> {
+        parse_document(RUNNER_OUTPUT, &self.runner_output)
+    }
+
+    /// The mind trace as one integer-only JSON value, if there is one.
+    pub fn mind_trace_document(&self) -> Result<Option<Value>, PreviewError> {
+        self.mind_trace
+            .as_deref()
+            .map(|bytes| parse_document(MIND_TRACE, bytes))
+            .transpose()
     }
 
     /// The response document described by
     /// `adapters/enaction/preview-response.schema.json`.
     pub fn response(&self) -> Result<Value, PreviewError> {
-        Ok(json!({
-            "adapterContract": PREVIEW_RESPONSE_CONTRACT,
-            "replay": "identical",
-            "runnerStdoutBytes": self.runner_stdout.len(),
-            "validation": {
+        let mut response = Map::new();
+        response.insert("adapterContract".into(), json!(PREVIEW_RESPONSE_CONTRACT));
+        response.insert("replay".into(), json!("identical"));
+        response.insert(
+            "runnerOutput".into(),
+            json!({
+                "bytes": self.runner_output.len(),
+                "document": self.runner_output_document()?,
+            }),
+        );
+        if let (Some(bytes), Some(document)) = (&self.mind_trace, self.mind_trace_document()?) {
+            response.insert(
+                "mindTrace".into(),
+                json!({"bytes": bytes.len(), "document": document}),
+            );
+        }
+        response.insert(
+            "validation".into(),
+            json!({
                 "exit": 0,
                 "stdout": String::from_utf8_lossy(&self.validator_stdout),
-            },
-            "documents": self.documents()?,
-        }))
+            }),
+        );
+        Ok(Value::Object(response))
     }
 }
 
-/// Parse a stream of newline-separated JSON documents.
-pub fn parse_documents(bytes: &[u8]) -> Result<Vec<Value>, PreviewError> {
-    let text = std::str::from_utf8(bytes).map_err(|error| PreviewError::MalformedRunnerOutput {
-        detail: format!("runner stdout is not UTF-8: {error}"),
-    })?;
-    let mut documents = Vec::new();
-    for (index, line) in text.lines().enumerate() {
-        if line.trim().is_empty() {
-            continue;
-        }
-        let value: Value =
-            serde_json::from_str(line).map_err(|error| PreviewError::MalformedRunnerOutput {
-                detail: format!("line {}: not JSON: {error}", index + 1),
-            })?;
-        canonical::check_integers(&value).map_err(|error: CanonicalError| {
-            PreviewError::MalformedRunnerOutput {
-                detail: format!("line {}: {error}", index + 1),
+/// Parse one document file: UTF-8, exactly one JSON value (surrounding
+/// whitespace allowed), every number an integer within +-(2^53-1).
+pub fn parse_document(document: &'static str, bytes: &[u8]) -> Result<Value, PreviewError> {
+    let malformed = |detail: String| PreviewError::MalformedDocument { document, detail };
+    let text =
+        std::str::from_utf8(bytes).map_err(|error| malformed(format!("not UTF-8: {error}")))?;
+    let value: Value =
+        serde_json::from_str(text).map_err(|error| malformed(format!("not JSON: {error}")))?;
+    canonical::check_integers(&value)
+        .map_err(|error: CanonicalError| malformed(error.to_string()))?;
+    Ok(value)
+}
+
+/// A private temporary directory, removed with its contents on drop.
+#[derive(Debug)]
+pub struct PrivateDir {
+    path: PathBuf,
+}
+
+impl PrivateDir {
+    /// Create a fresh directory under the system temporary directory. It is
+    /// created with `create_dir` (never reused) and, on Unix, mode 0700.
+    pub fn create() -> io::Result<Self> {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let base = std::env::temp_dir();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |elapsed| elapsed.as_nanos());
+        for _ in 0..16 {
+            let count = COUNTER.fetch_add(1, Ordering::SeqCst);
+            let path = base.join(format!(
+                "ums-preview-{}-{nanos}-{count}",
+                std::process::id()
+            ));
+            match create_private_dir(&path) {
+                Ok(()) => return Ok(Self { path }),
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
+                Err(error) => return Err(error),
             }
-        })?;
-        documents.push(value);
+        }
+        Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "no fresh temporary directory name",
+        ))
     }
-    if documents.is_empty() {
-        return Err(PreviewError::MalformedRunnerOutput {
-            detail: "runner wrote no document".into(),
-        });
+
+    pub fn path(&self) -> &Path {
+        &self.path
     }
-    Ok(documents)
+}
+
+impl Drop for PrivateDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
+#[cfg(unix)]
+fn create_private_dir(path: &Path) -> io::Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    std::fs::DirBuilder::new().mode(0o700).create(path)
+}
+
+#[cfg(not(unix))]
+fn create_private_dir(path: &Path) -> io::Result<()> {
+    std::fs::create_dir(path)
+}
+
+/// Which documents a runner template asks for.
+struct Template {
+    mind_trace: bool,
+}
+
+fn check_template(args: &[OsString]) -> Result<Template, PreviewError> {
+    let bad = |detail: String| PreviewError::BadRequest { detail };
+    let mut runner_output = 0;
+    let mut mind_trace = 0;
+    for arg in args {
+        let text = arg.to_string_lossy();
+        if text == RUNNER_OUTPUT_SLOT {
+            runner_output += 1;
+        } else if text == MIND_TRACE_SLOT {
+            mind_trace += 1;
+        } else if text.contains(RUNNER_OUTPUT_SLOT) || text.contains(MIND_TRACE_SLOT) {
+            return Err(bad(format!(
+                "runner argument '{text}' contains a slot inside a larger argument; a slot must be a whole argument"
+            )));
+        }
+    }
+    if runner_output != 1 {
+        return Err(bad(format!(
+            "the runner template must contain {RUNNER_OUTPUT_SLOT} exactly once as a whole argument (found {runner_output})"
+        )));
+    }
+    if mind_trace > 1 {
+        return Err(bad(format!(
+            "the runner template may contain {MIND_TRACE_SLOT} at most once (found {mind_trace})"
+        )));
+    }
+    Ok(Template {
+        mind_trace: mind_trace == 1,
+    })
 }
 
 #[derive(Clone, Debug)]
@@ -254,8 +424,10 @@ pub struct ProcessPreviewAdapter {
     validator: PathBuf,
     runner_args: Vec<OsString>,
     validator_args: Vec<OsString>,
+    policies: Option<PathBuf>,
     timeout: Duration,
     stdout_cap: usize,
+    document_cap: usize,
     profile: Option<(String, String)>,
 }
 
@@ -268,12 +440,17 @@ impl ProcessPreviewAdapter {
             validator: validator.into(),
             runner_args: Vec::new(),
             validator_args: Vec::new(),
+            policies: None,
             timeout: DEFAULT_TIMEOUT,
             stdout_cap: DEFAULT_STDOUT_CAP,
+            document_cap: DEFAULT_DOCUMENT_CAP,
             profile: None,
         }
     }
 
+    /// The runner's argument template. It must contain
+    /// [`RUNNER_OUTPUT_SLOT`] once and may contain [`MIND_TRACE_SLOT`] once,
+    /// each as a whole argument.
     pub fn with_runner_args<I, S>(mut self, args: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -283,12 +460,22 @@ impl ProcessPreviewAdapter {
         self
     }
 
+    /// Extra validator arguments, passed after `--policies` and
+    /// `--mind-trace`.
     pub fn with_validator_args<I, S>(mut self, args: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: Into<OsString>,
     {
         self.validator_args = args.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// The caller's `enaction-policies/1` file, passed to the validator as
+    /// `--policies`. Required: the policies are the caller's, never the
+    /// runner's (CAC-KERNEL section 9).
+    pub fn with_policies(mut self, path: impl Into<PathBuf>) -> Self {
+        self.policies = Some(path.into());
         self
     }
 
@@ -301,6 +488,12 @@ impl ProcessPreviewAdapter {
     /// Maximum stdout bytes accepted from each process.
     pub fn with_stdout_cap(mut self, cap: usize) -> Self {
         self.stdout_cap = cap;
+        self
+    }
+
+    /// Maximum size of each document file.
+    pub fn with_document_cap(mut self, cap: usize) -> Self {
+        self.document_cap = cap;
         self
     }
 
@@ -331,73 +524,192 @@ impl ProcessPreviewAdapter {
     /// Run the full pipeline. `stdin`, if given, is written to both runner
     /// processes; otherwise their stdin is empty.
     pub fn run(&self, stdin: Option<&[u8]>) -> Result<PreviewOutcome, PreviewError> {
+        let template = check_template(&self.runner_args)?;
+        let policies = self.policies.as_ref().ok_or_else(|| PreviewError::BadRequest {
+            detail: "no policies file: the validator's --policies is the caller's (call with_policies)".into(),
+        })?;
+        if !policies.is_file() {
+            return Err(PreviewError::MissingPolicies {
+                path: policies.clone(),
+            });
+        }
+        let policies =
+            std::fs::canonicalize(policies).map_err(|_| PreviewError::MissingPolicies {
+                path: policies.clone(),
+            })?;
         let runner = explicit_executable(Role::Runner, &self.runner)?;
         let validator = explicit_executable(Role::Validator, &self.validator)?;
 
+        let scratch = PrivateDir::create().map_err(|error| PreviewError::BadRequest {
+            detail: format!("cannot create a private temporary directory: {error}"),
+        })?;
         let mut runs = Vec::with_capacity(2);
         for run in 1..=2u8 {
-            let captured = run_process(
-                Role::Runner,
-                &runner,
-                &self.runner_args,
-                stdin,
-                self.timeout,
-                self.stdout_cap,
-            )?;
-            if !captured.status.success() {
-                return Err(PreviewError::RunnerFailed {
-                    run,
-                    status: captured.status.to_string(),
-                    stderr: String::from_utf8_lossy(&captured.stderr).into_owned(),
-                });
-            }
-            runs.push(captured.stdout);
+            runs.push(self.run_runner(&runner, scratch.path(), run, &template, stdin)?);
         }
         let second = runs.pop().unwrap_or_default();
         let first = runs.pop().unwrap_or_default();
-        if first != second {
-            let first_difference = first
-                .iter()
-                .zip(&second)
-                .position(|(a, b)| a != b)
-                .unwrap_or(first.len().min(second.len()));
-            return Err(PreviewError::ReplayMismatch {
-                first_len: first.len(),
-                second_len: second.len(),
-                first_difference,
-            });
+        compare(RUNNER_OUTPUT, &first.runner_output, &second.runner_output)?;
+        if let (Some(a), Some(b)) = (&first.mind_trace, &second.mind_trace) {
+            compare(MIND_TRACE, a, b)?;
         }
 
+        let mut args: Vec<OsString> = vec!["--policies".into(), policies.into_os_string()];
+        if template.mind_trace {
+            args.push("--mind-trace".into());
+            args.push(first.mind_trace_path.clone().into_os_string());
+        }
+        args.extend(self.validator_args.iter().cloned());
         let checked = run_process(
             Role::Validator,
             &validator,
-            &self.validator_args,
-            Some(&first),
+            &args,
+            Some(&first.runner_output),
             self.timeout,
             self.stdout_cap,
         )?;
+        drop(scratch);
         match checked.status.code() {
             Some(0) => Ok(PreviewOutcome {
-                runner_stdout: first,
+                runner_output: first.runner_output,
+                mind_trace: first.mind_trace,
+                runner_stdout: first.stdout,
                 validator_stdout: checked.stdout,
             }),
-            Some(1) => {
-                let (rule, path) = parse_fault(&checked.stdout)
-                    .or_else(|| parse_fault(&checked.stderr))
-                    .unwrap_or((None, None));
-                let detail = if rule.is_some() {
-                    String::new()
-                } else {
-                    excerpt(&checked.stdout, &checked.stderr)
-                };
-                Err(PreviewError::ValidatorRefused { rule, path, detail })
-            }
+            Some(1) => Err(match parse_faults(&checked.stdout) {
+                Some(faults) => {
+                    let mut faults = faults.into_iter();
+                    let (rule, path, detail) = faults.next().unwrap_or_default();
+                    PreviewError::ValidatorRefused {
+                        rule,
+                        path,
+                        detail: detail.unwrap_or_default(),
+                        more: faults.count(),
+                    }
+                }
+                None => PreviewError::ValidatorRefused {
+                    rule: None,
+                    path: None,
+                    detail: excerpt(&checked.stdout, &checked.stderr),
+                    more: 0,
+                },
+            }),
             _ => Err(PreviewError::ValidatorFailed {
                 status: checked.status.to_string(),
                 stderr: excerpt(&checked.stderr, &checked.stdout),
             }),
         }
     }
+
+    fn run_runner(
+        &self,
+        runner: &Path,
+        scratch: &Path,
+        run: u8,
+        template: &Template,
+        stdin: Option<&[u8]>,
+    ) -> Result<RunnerRun, PreviewError> {
+        let dir = scratch.join(format!("run-{run}"));
+        create_private_dir(&dir).map_err(|error| PreviewError::BadRequest {
+            detail: format!("cannot create {}: {error}", dir.display()),
+        })?;
+        let runner_output_path = dir.join("runner-output.json");
+        let mind_trace_path = dir.join("mind-trace.json");
+        let args: Vec<OsString> = self
+            .runner_args
+            .iter()
+            .map(|arg| {
+                if arg == RUNNER_OUTPUT_SLOT {
+                    runner_output_path.clone().into_os_string()
+                } else if arg == MIND_TRACE_SLOT {
+                    mind_trace_path.clone().into_os_string()
+                } else {
+                    arg.clone()
+                }
+            })
+            .collect();
+        let captured = run_process(
+            Role::Runner,
+            runner,
+            &args,
+            stdin,
+            self.timeout,
+            self.stdout_cap,
+        )?;
+        if !captured.status.success() {
+            return Err(PreviewError::RunnerFailed {
+                run,
+                status: captured.status.to_string(),
+                stderr: String::from_utf8_lossy(&captured.stderr).into_owned(),
+            });
+        }
+        let runner_output =
+            read_document(run, RUNNER_OUTPUT, &runner_output_path, self.document_cap)?;
+        let mind_trace = if template.mind_trace {
+            Some(read_document(
+                run,
+                MIND_TRACE,
+                &mind_trace_path,
+                self.document_cap,
+            )?)
+        } else {
+            None
+        };
+        Ok(RunnerRun {
+            runner_output,
+            mind_trace,
+            mind_trace_path,
+            stdout: captured.stdout,
+        })
+    }
+}
+
+#[derive(Default)]
+struct RunnerRun {
+    runner_output: Vec<u8>,
+    mind_trace: Option<Vec<u8>>,
+    mind_trace_path: PathBuf,
+    stdout: Vec<u8>,
+}
+
+fn read_document(
+    run: u8,
+    document: &'static str,
+    path: &Path,
+    cap: usize,
+) -> Result<Vec<u8>, PreviewError> {
+    let file =
+        std::fs::File::open(path).map_err(|_| PreviewError::MissingDocument { run, document })?;
+    let too_large = PreviewError::DocumentTooLarge { run, document, cap };
+    let length = file.metadata().map(|metadata| metadata.len()).unwrap_or(0);
+    if length > cap as u64 {
+        return Err(too_large);
+    }
+    let mut bytes = Vec::new();
+    file.take(cap as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| PreviewError::MissingDocument { run, document })?;
+    if bytes.len() > cap {
+        return Err(too_large);
+    }
+    Ok(bytes)
+}
+
+fn compare(document: &'static str, first: &[u8], second: &[u8]) -> Result<(), PreviewError> {
+    if first == second {
+        return Ok(());
+    }
+    let first_difference = first
+        .iter()
+        .zip(second)
+        .position(|(a, b)| a != b)
+        .unwrap_or(first.len().min(second.len()));
+    Err(PreviewError::ReplayMismatch {
+        document,
+        first_len: first.len(),
+        second_len: second.len(),
+        first_difference,
+    })
 }
 
 impl SimulationAdapter for ProcessPreviewAdapter {
@@ -417,27 +729,37 @@ impl SimulationAdapter for ProcessPreviewAdapter {
     }
 }
 
-/// Read a validator fault. Accepted forms (one JSON object, either as the
-/// whole stream or on one line): `{"rule": R, "path": P}`, or
-/// `{"faults": [{"rule": R, "path": P}, ...]}` (the first fault is used).
-fn parse_fault(bytes: &[u8]) -> Option<(Option<String>, Option<String>)> {
-    let text = std::str::from_utf8(bytes).ok()?;
-    let candidates = std::iter::once(text.trim()).chain(text.lines().map(str::trim));
-    for candidate in candidates {
-        let Ok(value) = serde_json::from_str::<Value>(candidate) else {
-            continue;
-        };
-        let fault = match value.get("faults").and_then(Value::as_array) {
-            Some(faults) => faults.first().cloned().unwrap_or(Value::Null),
-            None => value,
-        };
-        let rule = fault.get("rule").and_then(Value::as_str).map(str::to_owned);
-        if rule.is_some() {
-            let path = fault.get("path").and_then(Value::as_str).map(str::to_owned);
-            return Some((rule, path));
-        }
+type Fault = (Option<String>, Option<String>, Option<String>);
+
+/// Read the validator's refusal: stdout is exactly one line, the canonical
+/// object `{"faults":[{"detail","path","rule"}, ...]}` (CAC-KERNEL section
+/// 9). Stderr is for a human reader and is not parsed. Anything else is
+/// `None`.
+fn parse_faults(stdout: &[u8]) -> Option<Vec<Fault>> {
+    let text = std::str::from_utf8(stdout).ok()?;
+    let line = text.strip_suffix('\n').unwrap_or(text);
+    if line.contains('\n') {
+        return None;
     }
-    None
+    let value: Value = serde_json::from_str(line).ok()?;
+    let faults = value.get("faults")?.as_array()?;
+    if faults.is_empty() {
+        return None;
+    }
+    let field =
+        |fault: &Value, name: &str| fault.get(name).and_then(Value::as_str).map(str::to_owned);
+    Some(
+        faults
+            .iter()
+            .map(|fault| {
+                (
+                    field(fault, "rule"),
+                    field(fault, "path"),
+                    field(fault, "detail"),
+                )
+            })
+            .collect(),
+    )
 }
 
 fn excerpt(primary: &[u8], secondary: &[u8]) -> String {
@@ -626,21 +948,31 @@ fn kill(child: &mut Child) {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_fault;
+    use super::parse_faults;
 
     #[test]
-    fn fault_forms_are_read() {
+    fn the_canonical_fault_line_is_read() {
+        let line = b"{\"faults\":[{\"detail\":\"stale\",\"path\":\"package.manifest.digest\",\"rule\":\"digest-matches\"},{\"detail\":\"x\",\"path\":\"mind_trace.ticks[0]\",\"rule\":\"BadRanking\"}]}\n";
+        let faults = parse_faults(line).expect("faults");
+        assert_eq!(faults.len(), 2);
+        assert_eq!(faults[0].0.as_deref(), Some("digest-matches"));
+        assert_eq!(faults[0].1.as_deref(), Some("package.manifest.digest"));
+        assert_eq!(faults[0].2.as_deref(), Some("stale"));
+    }
+
+    #[test]
+    fn anything_but_one_fault_line_is_not_read() {
+        // A4 also read a bare {"rule","path"} object and scanned stderr; the
+        // real validator prints neither, so neither is accepted now.
         assert_eq!(
-            parse_fault(br#"{"rule":"BadRanking","path":"/ticks/3"}"#),
-            Some((Some("BadRanking".into()), Some("/ticks/3".into())))
+            parse_faults(b"{\"rule\":\"BadRanking\",\"path\":\"x\"}\n"),
+            None
         );
         assert_eq!(
-            parse_fault(b"note\n{\"faults\":[{\"rule\":\"DanglingCause\",\"path\":\"/ticks/0/affect/caused_by/0\"}]}\n"),
-            Some((
-                Some("DanglingCause".into()),
-                Some("/ticks/0/affect/caused_by/0".into())
-            ))
+            parse_faults(b"note\n{\"faults\":[{\"rule\":\"R\"}]}\n"),
+            None
         );
-        assert_eq!(parse_fault(b"plain text"), None);
+        assert_eq!(parse_faults(b"{\"faults\":[]}\n"), None);
+        assert_eq!(parse_faults(b"plain text"), None);
     }
 }
