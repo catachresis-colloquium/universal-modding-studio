@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 name: 'Required Files Gate'
 description: 'Ensures key structural and governance files are present, in the policy-correct format, and about this repository.'
 runs:

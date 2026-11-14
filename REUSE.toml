@@ -166,9 +166,30 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 
-# Vue/Bun Studio metadata is JSON and cannot carry SPDX comments.
+# Vue/Bun Studio metadata is JSON and cannot carry SPDX comments. One path
+# per stanza: the "Every file is attributable" step of licence-hygiene.yml
+# reads only the first quoted path of a `path` entry, so an array left the
+# other three files unchecked.
 [[annotations]]
-path = ["apps/studio/package.json", "apps/studio/tsconfig.json", "apps/studio/tsconfig.server.json", "apps/studio/bun.lock"]
+path = "apps/studio/package.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = "apps/studio/tsconfig.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = "apps/studio/tsconfig.server.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = "apps/studio/bun.lock"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
@@ -210,5 +231,22 @@ SPDX-License-Identifier = "AGPL-3.0-or-later"
 [[annotations]]
 path = "crates/ums-profile-sdk/tests/fixtures/preview/policies.json"
 precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# The Cytoville descriptor (#104) is JSON, like the IDApTIK and Slavia
+# descriptors above.
+[[annotations]]
+path = "profiles/cytoville/v1/descriptor.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# The A4 explain fixtures carry .license sidecars, which REUSE reads but the
+# shell check in licence-hygiene.yml does not. This stanza repeats their
+# attribution; `closest` lets the sidecars stay authoritative.
+[[annotations]]
+path = "crates/ums-profile-sdk/tests/fixtures/explain/*"
+precedence = "closest"
 SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
 SPDX-License-Identifier = "AGPL-3.0-or-later"

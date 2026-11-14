@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 name: 'Reasonably Good Token Validation Gate'
 description: 'Enforces that API keys and secrets are wrapped in the Reasonably Good Token Vault UUID format.'
 runs:
