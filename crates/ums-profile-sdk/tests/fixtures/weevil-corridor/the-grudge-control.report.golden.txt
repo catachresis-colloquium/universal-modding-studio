@@ -1,0 +1,53 @@
+explain report ums-explain/2
+inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
+package profile: idaptik/weevil-corridor 1.0
+mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.1
+leak-verdict: unverified (no counterfactual seam)
+beliefs: 7; agrees-with-world: 0; diverges-from-world: 7; no-claim: 0
+
+agent guard-0: commitment-override ticks: 0 of 200 [tested]
+  tells at: hesitate@21..23; startle@20
+  beliefs: 7; agrees-with-world: 0; diverges-from-world: 7; no-claim: 0
+  ticks 1..11 (11 ticks)
+    affect: calm (initial); attention 0..2460
+    ranking: advance > reload > evade > engage > investigate; incumbent: advance; selected: advance (rank 1); target: contact-21
+    tells: none
+  ticks 12..12 (1 tick)
+    affect: wary (changed from calm; caused by #2 action_outcome@12); attention 3634
+    ranking: advance > reload > evade > engage > investigate; incumbent: advance; selected: advance (rank 1); target: contact-21
+    tells: none
+  ticks 13..13 (1 tick)
+    affect: wary (unchanged); attention 3520
+    ranking: investigate; incumbent: advance; selected: investigate (rank 1); target: contact-21
+    tells: none
+  ticks 14..19 (6 ticks)
+    affect: wary (unchanged); attention 2909..3410
+    ranking: investigate; incumbent: investigate; selected: investigate (rank 1); target: contact-21
+    tells: none
+  ticks 20..20 (1 tick)
+    affect: wary (unchanged); attention 7818
+    ranking: engage > advance > reload > evade > investigate; incumbent: investigate; selected: engage (rank 1); target: contact-22
+    tells: startle
+  ticks 21..23 (3 ticks)
+    affect: wary (unchanged); attention 7107..7574
+    ranking: engage > advance > reload > evade > investigate; incumbent: investigate; selected: engage (rank 1); target: contact-22
+    tells: hesitate
+  ticks 24..24 (1 tick)
+    affect: wary (unchanged); attention 6885
+    ranking: engage > advance > reload > evade > investigate; incumbent: investigate; selected: engage (rank 1); target: contact-22
+    tells: none
+  ticks 25..64 (40 ticks)
+    affect: wary (unchanged); attention 1931..6670
+    ranking: engage > advance > reload > evade > investigate; incumbent: engage; selected: engage (rank 1); target: contact-22
+    tells: none
+  ticks 65..200 (136 ticks)
+    affect: calm (changed from wary; caused by #3 observation@65); attention 23..1871
+    ranking: engage > advance > reload > evade > investigate; incumbent: engage; selected: engage (rank 1); target: contact-22
+    tells: none
+  belief 1: "contact-21 in room-0 at tick 13" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 2: "contact-21 in room-0 at tick 14" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 3: "contact-21 in room-0 at tick 15" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 4: "contact-21 in room-0 at tick 16" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 5: "contact-21 in room-0 at tick 17" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 6: "contact-21 in room-0 at tick 18" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 7: "contact-21 in room-0 at tick 19" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]

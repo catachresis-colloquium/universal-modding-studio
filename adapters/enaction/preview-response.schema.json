@@ -2,72 +2,66 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/catachresis-colloquium/universal-modding-studio/blob/main/adapters/enaction/preview-response.schema.json",
   "title": "UMS process preview response",
-  "description": "Written by ProcessPreviewAdapter (crates/ums-profile-sdk/src/preview.rs) only after the runner ran twice as separate processes with byte-identical stdout and the validator exited 0. A refused or failed preview produces no response document. Numbers are integers within +-(2^53-1).",
+  "description": "Written by ProcessPreviewAdapter (crates/ums-profile-sdk/src/preview.rs) only after the runner ran twice as separate processes, each writing its documents to its own files in a private directory, every document pair was byte-identical, and the validator exited 0. A refused or failed preview produces no response document. Numbers are integers within +-(2^53-1). Version 2 (2026-11-14, package B2) replaced the version-1 stdout stream of documents with one file per document.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["adapterContract", "replay", "runnerStdoutBytes", "validation", "documents"],
+  "required": [
+    "adapterContract",
+    "replay",
+    "runnerOutput",
+    "validation"
+  ],
   "properties": {
     "adapterContract": {
-      "const": "ums-enaction-preview-response/1"
+      "const": "ums-enaction-preview-response/2"
     },
     "replay": {
-      "description": "Both runner processes wrote identical bytes. A difference is refused as ReplayMismatch, so no other value exists.",
+      "description": "Both runner processes wrote identical bytes into each document file. A difference is refused as ReplayMismatch, so no other value exists. Runner stdout is not compared: a runner may print the paths it wrote.",
       "const": "identical"
     },
-    "runnerStdoutBytes": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 9007199254740991
+    "runnerOutput": {
+      "$ref": "#/$defs/document",
+      "description": "The {runner_output} file: an enaction-runner-output/1 envelope from a real runner. Its full schema belongs to Enaction (CAC-KERNEL section 9)."
+    },
+    "mindTrace": {
+      "$ref": "#/$defs/document",
+      "description": "The {mind_trace} file, present only when the runner template named it: an enaction-mind-trace/1 document (CAC-KERNEL section 10)."
     },
     "validation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["exit", "stdout"],
+      "required": [
+        "exit",
+        "stdout"
+      ],
       "properties": {
-        "exit": { "const": 0 },
-        "stdout": { "type": "string" }
-      }
-    },
-    "documents": {
-      "description": "The runner's stdout, one JSON document per line, in order. The documents the explain lens reads are the runner output (the enaction-runner-output/1 envelope, which carries the world-truth atoms) and the enaction-mind-trace/1 document. Their full schemas belong to Enaction; only the members UMS reads are named here.",
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "anyOf": [
-          { "$ref": "#/$defs/runnerOutput" },
-          { "$ref": "#/$defs/mindTrace" },
-          { "type": "object" }
-        ]
+        "exit": {
+          "const": 0
+        },
+        "stdout": {
+          "type": "string",
+          "description": "enaction-validate prints the canonical envelope and a newline, then, with --mind-trace, the canonical mind trace and a newline."
+        }
       }
     }
   },
   "$defs": {
-    "runnerOutput": {
-      "description": "enaction-runner-output/1: {package, world_truth: [atom], ledger_trace?}. UMS reads package.beliefs, package.events and world_truth.",
+    "document": {
       "type": "object",
-      "required": ["package", "world_truth"],
+      "additionalProperties": false,
+      "required": [
+        "bytes",
+        "document"
+      ],
       "properties": {
-        "package": { "type": "object" },
-        "world_truth": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["frame", "hypothesis"],
-            "properties": {
-              "frame": { "type": "string" },
-              "hypothesis": { "type": "string" }
-            }
-          }
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         },
-        "ledger_trace": {}
-      }
-    },
-    "mindTrace": {
-      "description": "enaction-mind-trace/1, as defined in enaction-engine docs/proposals/WEEVIL-HOST-ROUTE.adoc.",
-      "type": "object",
-      "required": ["contract", "producer", "profile", "vocabulary", "ticks"],
-      "properties": {
-        "contract": { "const": "enaction-mind-trace/1" }
+        "document": {
+          "type": "object"
+        }
       }
     }
   }

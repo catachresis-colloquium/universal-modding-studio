@@ -1,0 +1,168 @@
+= Designer quickstart: preview a corridor guard
+
+One command runs the whole chain: the IDApTIK corridor runner twice, then
+Enaction's validator, then the explain lens. UMS links neither program; it
+runs them as processes and reads the files they write (ADR-0019).
+
+== 1. Build the three pieces
+
+These commands are copied from the work package brief. *They were not run
+here*: the container that wrote this page builds no code from the sibling
+repositories. Each one is the owning repository's documented build.
+
+[source,bash]
+----
+mkdir -p ~/weevil && cd ~/weevil
+git clone --depth 1 https://github.com/catachresis-colloquium/enaction-engine
+git clone --depth 1 https://github.com/catachresis-colloquium/evil-weevil
+git clone --depth 1 https://github.com/catachresis-colloquium/IDApTIK
+
+# The validator (not run here).
+(cd enaction-engine && cargo build --locked -p enaction-contracts --bin enaction-validate)
+
+# The Evil Weevil kernel, with Zig 0.16.0 (not run here).
+python3 -m pip install --no-cache-dir --target "$HOME/zig16" ziglang==0.16.0
+export PATH="$HOME/zig16/ziglang:$PATH"
+(cd evil-weevil && zig build --build-file src/interface/ffi/build.zig)
+
+# The corridor runner (not run here).
+(cd IDApTIK && EVIL_WEEVIL_ROOT="$HOME/weevil/evil-weevil" \
+  cargo build --locked -p idaptik-weevil --bin idaptik-weevil-replay)
+----
+
+Then, in this repository:
+
+[source,bash]
+----
+cargo build --locked -p ums-profile-sdk --bin ums-profile
+export ENACTION_VALIDATE="$HOME/weevil/enaction-engine/target/debug/enaction-validate"
+export IDAPTIK_WEEVIL_REPLAY="$HOME/weevil/IDApTIK/target/debug/idaptik-weevil-replay"
+----
+
+== 2. Preview the decoy
+
+[source,bash]
+----
+target/debug/ums-profile preview \
+  --runner "$IDAPTIK_WEEVIL_REPLAY" \
+  --validator "$ENACTION_VALIDATE" \
+  --policies vendor/idaptik/enaction-policies.json \
+  --runner-output-flag --emit-epistemic \
+  --runner-arg --profile --runner-arg decoy-lure \
+  --runner-arg --ticks --runner-arg 200 \
+  --runner-arg --seed --runner-arg 7 \
+  --explain
+----
+
+What the flags do:
+
+* `--runner-output-flag --emit-epistemic` makes the runner write its
+  `enaction-runner-output/1` document to a file that UMS chooses. For a
+  scenario with a mind (`the-grudge`, `the-flinch` and their controls), add
+  `--mind-trace-flag --emit-mind-trace`;
+* the runner runs twice, into two private directories. If the two documents
+  differ by one byte, the preview stops with `ReplayMismatch`;
+* `--policies` is your profile's `enaction-policies/1` file. Enaction takes
+  the policies from you, never from the runner;
+* if the validator refuses, the preview stops with `ValidatorRefused` and
+  names the validator's rule and field path, for example `digest-matches at
+  package.manifest.digest` for a document edited after it was sealed.
+
+A real run first prints `replay-identical: ok` and `validator: accepted
+(exit 0)`, and the report's inputs line ends `(validator-accepted)`.
+
+== 3. What the report says
+
+*The output below is not from a run of the command above.* It is the explain
+lens over the decoy-lure document that the real runner wrote, vendored by
+digest in `vendor/idaptik/weevil-corridor/decoy-lure.runner-output.json`
+(IDApTIK at `87b47a6`). No validator ran on it here, so its inputs line says
+`(not-validated)`, and the two header lines of a live preview are missing.
+It is pinned byte for byte as
+`crates/ums-profile-sdk/tests/fixtures/weevil-corridor/decoy-lure.report.golden.txt`.
+
+[source,text]
+----
+explain report ums-explain/2
+inputs: enaction-runner-output/1 + no mind trace (not-validated)
+package profile: idaptik/weevil-corridor 1.0
+leak-verdict: unverified (no counterfactual seam)
+beliefs: 36; agrees-with-world: 0; diverges-from-world: 36; no-claim: 0
+
+agent guard-0: commitment-override ticks: 0 of 0 [tested]
+  beliefs: 36; agrees-with-world: 0; diverges-from-world: 36; no-claim: 0
+  belief 1: "contact-200 in room-0 at tick 31" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 2: "contact-200 in room-0 at tick 32" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 3: "contact-200 in room-0 at tick 33" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 4: "contact-200 in room-0 at tick 34" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 5: "contact-200 in room-0 at tick 35" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 6: "contact-200 in room-0 at tick 36" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 7: "contact-200 in room-0 at tick 37" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 8: "contact-200 in room-0 at tick 38" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 9: "contact-200 in room-0 at tick 39" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 10: "contact-200 in room-0 at tick 40" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 11: "contact-200 in room-0 at tick 41" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 12: "contact-200 in room-0 at tick 42" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 13: "contact-200 in room-0 at tick 43" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 14: "contact-200 in room-0 at tick 44" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 15: "contact-200 in room-0 at tick 45" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 16: "contact-200 in room-0 at tick 46" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 17: "contact-200 in room-0 at tick 47" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 18: "contact-200 in room-0 at tick 48" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 19: "contact-200 in room-0 at tick 49" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 20: "contact-200 in room-0 at tick 50" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 21: "contact-200 in room-0 at tick 51" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 22: "contact-200 in room-0 at tick 52" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 23: "contact-200 in room-0 at tick 53" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 24: "contact-200 in room-0 at tick 54" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 25: "contact-200 in room-0 at tick 55" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 26: "contact-200 in room-0 at tick 56" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 27: "contact-200 in room-0 at tick 57" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 28: "contact-200 in room-0 at tick 58" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 29: "contact-200 in room-0 at tick 59" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 30: "contact-200 in room-0 at tick 60" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 31: "contact-200 in room-0 at tick 61" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 32: "contact-200 in room-0 at tick 62" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 33: "contact-200 in room-0 at tick 63" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 34: "contact-200 in room-0 at tick 64" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 35: "contact-200 in room-0 at tick 65" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 36: "contact-200 in room-0 at tick 66" (suspected 6000..10000); absent from world truth -> diverges-from-world [tested]
+----
+
+How to read it: the decoy led the guard to suspect `contact-200` in room 0
+on 36 ticks. World truth lists every stated proposition that is true, and
+none of these is in it, so every belief diverges from the world: the decoy
+worked. The cautious sentry, on the same corridor, has 36 beliefs and every
+one agrees (`cautious-sentry.report.golden.txt`).
+
+For a scenario with a mind, the report also has tick windows: the affect
+token and what caused it to change, the ranking of candidates (never a
+score), the incumbent commitment and the selected candidate. A tick where
+the guard keeps its incumbent although the ranking prefers something else is
+marked `commitment-override`. From `the-grudge.report.golden.txt`:
+
+[source,text]
+----
+agent guard-0: commitment-override ticks: 37 of 200 (20..56) [tested]
+  tells at: fixate@10..56; hesitate@57..59; startle@20, 56
+----
+
+The leak verdict is always `unverified (no counterfactual seam)`. The lens
+cannot yet say that a guard did not learn something it should not know.
+
+== Checks you can run without the binaries
+
+[source,bash]
+----
+cargo test --locked -p ums-profile-sdk --test process_preview \
+  --test explain_golden --test vendored_enaction --test vendored_idaptik
+----
+
+With the binaries built, the full chain is an ignored test. It fails, rather
+than passes, if either variable is unset:
+
+[source,bash]
+----
+ENACTION_VALIDATE=... IDAPTIK_WEEVIL_REPLAY=... \
+  cargo test --locked -p ums-profile-sdk --test real_chain -- --ignored --nocapture
+----

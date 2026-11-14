@@ -1,21 +1,21 @@
 {
+  "contract": "enaction-runner-output/1",
   "package": {
     "events": [
-      {"event_id": 11, "sequence": 0, "tick": 10, "observer": "agent-b", "kind": "Observation"},
-      {"event_id": 12, "sequence": 0, "tick": 12, "observer": "agent-a", "kind": "ActionOutcome"},
-      {"event_id": 17, "sequence": 1, "tick": 14, "observer": "agent-a", "kind": "Observation"}
+      {"event_id": 11, "sequence": 11, "tick": 10, "observer": "agent-b", "kind": "observation", "subject": {"agent": "agent-b"}, "proposition": "door is south", "confidence": 9000, "provenance": {"origin": "sight"}},
+      {"event_id": 12, "sequence": 12, "tick": 12, "observer": "agent-a", "kind": "action_outcome", "subject": {"agent": "agent-a"}, "proposition": "alarm is on", "confidence": 9000, "provenance": {"origin": "hearing"}},
+      {"event_id": 17, "sequence": 17, "tick": 14, "observer": "agent-a", "kind": "observation", "subject": {"agent": "agent-a"}, "proposition": "door is north", "confidence": 6000, "provenance": {"origin": "sight"}}
     ],
     "beliefs": [
-      {"belief_id": 1, "holder": "agent-a", "proposition": {"frame": "door", "hypothesis": "north"}, "status": "Believed", "source_events": [11]},
-      {"belief_id": 2, "holder": "agent-a", "proposition": {"frame": "alarm", "hypothesis": "off"}, "status": "Rejected", "source_events": [12]},
-      {"belief_id": 3, "holder": "agent-b", "proposition": {"frame": "door", "hypothesis": "south"}, "status": "Known", "source_events": [11]},
-      {"belief_id": 4, "holder": "agent-b", "proposition": {"frame": "weather", "hypothesis": "rain"}, "status": "Suspected", "source_events": [11]},
-      {"belief_id": 5, "holder": "agent-b", "proposition": {"frame": "door", "hypothesis": "north"}, "status": "Unknown", "source_events": [11]},
-      {"belief_id": 6, "holder": ["agent-a", "agent-b"], "proposition": {"frame": "door", "hypothesis": "south"}, "status": "Believed", "source_events": [17]}
-    ]
+      {"belief_id": 1, "bearer": "agent-a", "proposition": "door is north", "status": "believed", "confidence": {"belief": 8000, "plausibility": 9500}, "source_events": [17], "valid_from": 14},
+      {"belief_id": 2, "bearer": "agent-a", "proposition": "alarm is off", "status": "rejected", "confidence": {"belief": 0, "plausibility": 500}, "source_events": [12], "valid_from": 12},
+      {"belief_id": 3, "bearer": "agent-b", "proposition": "door is south", "status": "certain", "confidence": {"belief": 10000, "plausibility": 10000}, "source_events": [11], "valid_from": 10},
+      {"belief_id": 4, "bearer": "agent-b", "proposition": "weather is rain", "status": "suspected", "confidence": {"belief": 5500, "plausibility": 9000}, "source_events": [11], "valid_from": 10},
+      {"belief_id": 5, "bearer": "agent-b", "proposition": "door is north", "status": "unknown", "confidence": {"belief": 3000, "plausibility": 7000}, "source_events": [11], "valid_from": 10},
+      {"belief_id": 6, "bearer": "agent-b", "holders": ["agent-a"], "proposition": "door is south", "status": "believed", "confidence": {"belief": 7500, "plausibility": 9000}, "source_events": [17], "valid_from": 14},
+      {"belief_id": 7, "bearer": "agent-a", "proposition": "alarm is on", "status": "rejected", "confidence": {"belief": 200, "plausibility": 900}, "source_events": [12], "valid_from": 12}
+    ],
+    "manifest": {"digest": "0000000000000000000000000000000000000000000000000000000000000000", "guarantees": ["esm/replay-deterministic"], "kernel_version": {"major": 1, "minor": 0}, "migration_from": {"major": 1, "minor": 0}, "profile": {"id": "stub/esm/v1", "targets_kernel": {"major": 1, "minor": 0}, "version": {"major": 1, "minor": 0}}, "schema_version": {"major": 1, "minor": 0}, "seed": {"fixed": 7}, "source": "stub"}
   },
-  "world_truth": [
-    {"frame": "door", "hypothesis": "south"},
-    {"frame": "alarm", "hypothesis": "on"}
-  ]
+  "world_truth": ["door is south", "alarm is on"]
 }

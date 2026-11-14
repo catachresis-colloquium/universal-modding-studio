@@ -1,0 +1,95 @@
+explain report ums-explain/2
+inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
+package profile: idaptik/weevil-corridor 1.0
+mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.1
+leak-verdict: unverified (no counterfactual seam)
+beliefs: 42; agrees-with-world: 0; diverges-from-world: 42; no-claim: 0
+
+agent guard-0: commitment-override ticks: 37 of 200 (20..56) [tested]
+  tells at: fixate@10..56; hesitate@57..59; startle@20, 56
+  beliefs: 42; agrees-with-world: 0; diverges-from-world: 42; no-claim: 0
+  ticks 1..9 (9 ticks)
+    affect: calm (initial); attention 0
+    ranking: advance > reload > evade > engage > investigate; incumbent: advance; selected: advance (rank 1); target: contact-21
+    tells: none
+  ticks 10..12 (3 ticks)
+    affect: angry (changed from calm; caused by #1 action_outcome@10); attention 5000..10000
+    ranking: advance > reload > evade > engage > investigate; incumbent: advance; selected: advance (rank 1); target: contact-21
+    tells: fixate
+  ticks 13..13 (1 tick)
+    affect: angry (unchanged); attention 9960
+    ranking: investigate; incumbent: advance; selected: investigate (rank 1); target: contact-21
+    tells: fixate
+  ticks 14..19 (6 ticks)
+    affect: angry (unchanged); attention 9729..9922
+    ranking: investigate; incumbent: investigate; selected: investigate (rank 1); target: contact-21
+    tells: fixate
+  ticks 20..20 (1 tick)
+    affect: angry (unchanged); attention 9690
+    ranking: engage > investigate > advance > reload > evade; incumbent: investigate; selected: investigate (rank 2); target: contact-21
+    tells: startle, fixate
+    commitment-override [tested]
+  ticks 21..55 (35 ticks)
+    affect: angry (unchanged); attention 8447..9652
+    ranking: engage > investigate > advance > reload > evade; incumbent: investigate; selected: investigate (rank 2); target: contact-21
+    tells: fixate
+    commitment-override [tested]
+  ticks 56..56 (1 tick)
+    affect: angry (unchanged); attention 8414
+    ranking: engage > investigate > advance > reload > evade; incumbent: investigate; selected: investigate (rank 2); target: contact-21
+    tells: startle, fixate
+    commitment-override [tested]
+  ticks 57..59 (3 ticks)
+    affect: angry (unchanged); attention 8316..8381
+    ranking: engage > advance > reload > evade > investigate; incumbent: investigate; selected: engage (rank 1); target: contact-22
+    tells: hesitate
+  ticks 60..60 (1 tick)
+    affect: angry (unchanged); attention 8283
+    ranking: engage > advance > reload > evade > investigate; incumbent: investigate; selected: engage (rank 1); target: contact-22
+    tells: none
+  ticks 61..200 (140 ticks)
+    affect: angry (unchanged); attention 4781..8251
+    ranking: engage > advance > reload > evade > investigate; incumbent: engage; selected: engage (rank 1); target: contact-22
+    tells: none
+  belief 1: "contact-21 in room-0 at tick 13" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 2: "contact-21 in room-0 at tick 14" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 3: "contact-21 in room-0 at tick 15" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 4: "contact-21 in room-0 at tick 16" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 5: "contact-21 in room-0 at tick 17" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 6: "contact-21 in room-0 at tick 18" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 7: "contact-21 in room-0 at tick 19" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 8: "contact-21 in room-0 at tick 21" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 9: "contact-21 in room-0 at tick 22" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 10: "contact-21 in room-0 at tick 23" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 11: "contact-21 in room-0 at tick 24" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 12: "contact-21 in room-0 at tick 25" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 13: "contact-21 in room-0 at tick 26" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 14: "contact-21 in room-0 at tick 27" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 15: "contact-21 in room-0 at tick 28" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 16: "contact-21 in room-0 at tick 29" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 17: "contact-21 in room-0 at tick 30" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 18: "contact-21 in room-0 at tick 31" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 19: "contact-21 in room-0 at tick 32" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 20: "contact-21 in room-0 at tick 33" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 21: "contact-21 in room-0 at tick 34" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 22: "contact-21 in room-0 at tick 35" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 23: "contact-21 in room-0 at tick 36" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 24: "contact-21 in room-0 at tick 37" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 25: "contact-21 in room-0 at tick 38" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 26: "contact-21 in room-0 at tick 39" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 27: "contact-21 in room-0 at tick 40" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 28: "contact-21 in room-0 at tick 41" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 29: "contact-21 in room-0 at tick 42" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 30: "contact-21 in room-0 at tick 43" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 31: "contact-21 in room-0 at tick 44" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 32: "contact-21 in room-0 at tick 45" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 33: "contact-21 in room-0 at tick 46" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 34: "contact-21 in room-0 at tick 47" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 35: "contact-21 in room-0 at tick 48" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 36: "contact-21 in room-0 at tick 49" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 37: "contact-21 in room-0 at tick 50" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 38: "contact-21 in room-0 at tick 51" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 39: "contact-21 in room-0 at tick 52" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 40: "contact-21 in room-0 at tick 53" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 41: "contact-21 in room-0 at tick 54" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]
+  belief 42: "contact-21 in room-0 at tick 55" (certain 10000..10000); absent from world truth -> diverges-from-world [tested]

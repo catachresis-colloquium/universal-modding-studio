@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/catachresis-colloquium/IDApTIK",
+  "commit": "87b47a60699d125421ecff16be784242ace3ed9d",
+  "branch": "marina/weevil-b1-runner",
+  "path": "crates/idaptik-weevil/tests/fixtures/enaction",
+  "vendored_on": "2026-11-14",
+  "sha256sums_digest": "df6981661815cc259f6bb05a1fb775893eee94383031e118ebb02f923988f6cb",
+  "policies": {
+    "path": "crates/idaptik-weevil/tests/fixtures/enaction-policies.json",
+    "vendored_as": "vendor/idaptik/enaction-policies.json",
+    "sha256": "e802ae7797c56ef07d070357ee6633ab2cf64c12e2722b704db271d861e8cfa3"
+  },
+  "note": "Byte copy of the corridor runner's committed Enaction documents at this commit; SHA256SUMS is IDApTIK's own file. At vendoring time the directory existed on this branch head and not on IDApTIK main (2ec7b1a). Do not edit the vendored files: re-vendor from a new commit and update this record."
+}

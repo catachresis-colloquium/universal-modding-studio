@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/catachresis-colloquium/enaction-engine",
+  "commit": "03cb27b5ba0a564d7da2be161adaf0812fe8a496",
+  "path": "conformance/mind/v1",
+  "vendored_on": "2026-11-14",
+  "sha256sums_digest": "089f67879ec06923ee576546def7491beb524558b7d7309cc1de6b55071b91bd",
+  "note": "Byte copy of conformance/mind/v1 at this commit. SHA256SUMS is upstream's own file; its digest is pinned here. Do not edit the vendored files: re-vendor from a new commit and update this record."
+}
