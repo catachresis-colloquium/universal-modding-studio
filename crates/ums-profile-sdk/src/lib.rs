@@ -13,6 +13,7 @@
 #![forbid(unsafe_code)]
 
 pub mod canonical;
+pub mod explain;
 pub mod preview;
 
 use std::collections::{BTreeMap, BTreeSet};

@@ -1,0 +1,15 @@
+{
+  "contract": "enaction-mind-trace/1",
+  "producer": {"kernel": "stub", "abi": "1.1"},
+  "profile": {"id": "stub-profile", "version": "0.0.0"},
+  "vocabulary": {
+    "affect_tokens": ["calm", "angry"],
+    "candidates": ["advance", "engage", "evade"],
+    "tells": ["startle"]
+  },
+  "ticks": [
+    {"tick": 10, "agent": "agent-a", "affect": {"token": "calm", "attention": 1000, "caused_by": []}, "conation": {"ranking": ["advance", "engage"], "incumbent": "advance", "selected": "advance"}, "tells": []},
+    {"tick": 11, "agent": "agent-a", "affect": {"token": "angry", "attention": 6000, "caused_by": [12]}, "conation": {"ranking": ["engage", "advance"], "incumbent": "advance", "selected": "engage", "target": "contact-1"}, "tells": ["startle"]},
+    {"tick": 12, "agent": "agent-a", "affect": {"token": "angry", "attention": 6000, "caused_by": []}, "conation": {"ranking": ["evade", "engage"], "incumbent": "engage", "selected": "evade"}, "tells": []}
+  ]
+}

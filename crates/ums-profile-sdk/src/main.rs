@@ -64,6 +64,9 @@ enum Command {
         /// Per-process timeout in milliseconds.
         #[arg(long, default_value_t = 60_000)]
         timeout_ms: u64,
+        /// Print the designer report instead of the response document.
+        #[arg(long)]
+        explain: bool,
     },
 }
 
@@ -114,7 +117,15 @@ fn run(command: Command) -> Result<String, String> {
             runner_args,
             validator_args,
             timeout_ms,
-        } => preview(runner, validator, runner_args, validator_args, timeout_ms),
+            explain,
+        } => preview(
+            runner,
+            validator,
+            runner_args,
+            validator_args,
+            timeout_ms,
+            explain,
+        ),
     }
 }
 
@@ -124,6 +135,7 @@ fn preview(
     runner_args: Vec<String>,
     validator_args: Vec<String>,
     timeout_ms: u64,
+    explain: bool,
 ) -> Result<String, String> {
     let outcome = ProcessPreviewAdapter::new(runner, validator)
         .with_runner_args(runner_args)
@@ -131,7 +143,15 @@ fn preview(
         .with_timeout(Duration::from_millis(timeout_ms))
         .run(None)
         .map_err(|error| error.to_string())?;
-    {
+    if explain {
+        let documents = outcome.documents().map_err(|error| error.to_string())?;
+        let report = ums_profile_sdk::explain::explain_documents(&documents, true)
+            .map_err(|error| error.to_string())?;
+        Ok(format!(
+            "replay-identical: ok\nvalidator: accepted (exit 0)\n{}",
+            ums_profile_sdk::explain::render_text(&report).trim_end()
+        ))
+    } else {
         let response = outcome.response().map_err(|error| error.to_string())?;
         ums_profile_sdk::canonical::to_canonical_string(&response)
             .map_err(|error| error.to_string())
