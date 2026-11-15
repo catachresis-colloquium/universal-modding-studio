@@ -82,7 +82,7 @@ fn guardRankName(value: types.GuardRank) []const u8 {
         .sentinel => "sentinel",
         .assassin => "assassin",
         .elite_guard => "elite",
-        .security_chief => "chief",
+        .security_chief => "security_chief",
         .rival_hacker => "rival_hacker",
     };
 }
@@ -407,7 +407,7 @@ pub fn deserializeLevelJson(backing: std.mem.Allocator, input: []const u8) !*typ
     for (wire.guards, 0..) |guard, index| level.guards[index] = .{
         .world_x = .{ .position = guard.world_x },
         .zone = try dupeZ(allocator, guard.zone),
-        .rank = try namedEnum(types.GuardRank, guard.rank, &.{ "basic", "enforcer", "anti_hacker", "sentinel", "assassin", "elite", "chief", "rival_hacker" }),
+        .rank = try namedEnum(types.GuardRank, guard.rank, &.{ "basic", "enforcer", "anti_hacker", "sentinel", "assassin", "elite", "security_chief", "rival_hacker" }),
         .patrol_radius = guard.patrol_radius,
     };
     level.guards_len = @intCast(wire.guards.len);
