@@ -11,24 +11,26 @@ rather than fabricate them. Claims must name their evidence level.
 IDApTIK drives the present implementation. Chronicles of Slavia challenges
 the abstraction. Neither is flattened to fit the other.
 
-== Gate record, 2026-11-15
+== Gate record, 2026-11-15 (second pass)
 
-The gates behind this affirmation ran on source commit `a7031eb` (UMS
+The gates behind this affirmation ran on source commit `8901ef1` (UMS
 `main`). A record cannot name its own commit, so it names the commit the
 gates ran on; that commit is an ancestor of this one. The full table is in
-`docs/READINESS.md`, under "Gate record, 2026-11-15".
+`docs/READINESS.md`, under "Gate record, 2026-11-15 (second pass)". The
+first pass of the same day ran on `a7031eb`.
 
-Passed: Rust format, clippy and the workspace tests; the real preview chain;
-the IDApTIK round trip; the architecture boundary gate and its planted
-violations; DLC, Slavia, edit-script, Nickel configuration and generation
-drift; the studio tests and build; and the compiled Zig symbol gate.
+Passed: Rust format, clippy and the workspace tests; the real preview chain,
+8 of 8; the IDApTIK round trip, locally and in CI; the architecture boundary
+gate and its planted violations; DLC, Slavia, edit-script, Nickel
+configuration and generation drift; the studio tests and build; all 32 Zig FFI
+integration tests (fixed by #114); Zig formatting; the compiled Zig symbol
+gate; and the licence-hygiene workflow.
 
-Also passed, in CI: the licence-hygiene workflow, after #109.
-
-Failed: one Zig FFI integration test, whose fixture still uses the guard rank
-`chief` that `ace5777` renamed.
+Failed: the Zig CI workflow, which ends in `startup_failure` on every run
+since 2026-11-01, so the Zig suite is not CI-gated in practice. The likely
+cause is the organisation's Actions policy; that is an owner decision.
 
 Open, not run, with the reason recorded: the Idris2 proofs (no Idris2), SPARK
-(no GNATprove), REUSE lint with the `reuse` tool (not installed), the `dlc/vm` reversibility check (no
-AffineScript), the `mise`-guarded Zig recipes (no `mise`), and the CI
-round-trip step at IDApTIK `58d6936` (no run observed).
+(no GNATprove), REUSE lint with the `reuse` tool (not installed), the `dlc/vm`
+reversibility check (no AffineScript), and the `mise`-guarded Zig recipes (no
+`mise`).
