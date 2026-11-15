@@ -1,19 +1,34 @@
 {
   "repository": "https://github.com/catachresis-colloquium/IDApTIK",
-  "commit": "22797e00e6adfa20aed696f44867e8c879bbd391",
+  "commit": "462af7c5f74e3cbf10e141e9868332e3997ec500",
   "branch": "main",
   "first_vendored_from": {
     "commit": "87b47a60699d125421ecff16be784242ace3ed9d",
     "branch": "marina/weevil-b1-runner"
   },
+  "previously_vendored_from": {
+    "commit": "22797e00e6adfa20aed696f44867e8c879bbd391",
+    "branch": "main",
+    "sha256sums_digest": "df6981661815cc259f6bb05a1fb775893eee94383031e118ebb02f923988f6cb"
+  },
   "path": "crates/idaptik-weevil/tests/fixtures/enaction",
-  "vendored_on": "2026-11-14",
-  "source_updated_on": "2026-11-14",
-  "sha256sums_digest": "df6981661815cc259f6bb05a1fb775893eee94383031e118ebb02f923988f6cb",
+  "tree": "8d99ad961017a0c398b730ad191ef59f1d90b406",
+  "vendored_on": "2026-11-15",
+  "source_updated_on": "2026-11-15",
+  "sha256sums_digest": "a736577a9102a289e6f82e77cf6e8c2ccc420938afe8816bc112b4616abd8b63",
   "policies": {
     "path": "crates/idaptik-weevil/tests/fixtures/enaction-policies.json",
     "vendored_as": "vendor/idaptik/enaction-policies.json",
-    "sha256": "e802ae7797c56ef07d070357ee6633ab2cf64c12e2722b704db271d861e8cfa3"
+    "sha256": "e802ae7797c56ef07d070357ee6633ab2cf64c12e2722b704db271d861e8cfa3",
+    "depth_max_order": 0,
+    "for": "the six runs before slice 2"
   },
-  "note": "Byte copy of the corridor runner's committed Enaction documents; SHA256SUMS is IDApTIK's own file. First vendored from 87b47a6 on marina/weevil-b1-runner; the same directory and policies file are on IDApTIK main at 22797e0 (#228, squash merge) with identical git tree hashes (directory d0bd949, policies 17a928f), so the vendored bytes are unchanged. Do not edit the vendored files: re-vendor from a new commit and update this record."
+  "policies_models": {
+    "path": "crates/idaptik-weevil/tests/fixtures/enaction-policies-models.json",
+    "vendored_as": "vendor/idaptik/enaction-policies-models.json",
+    "sha256": "d80ee942e4cc6e12eea5c526fb404a21b0f94b5925f6d7b5fc056b9c3de42dc8",
+    "depth_max_order": 1,
+    "for": "the six slice 2 model runs"
+  },
+  "note": "Byte copy of the corridor runner's committed Enaction documents (22 documents, README.md, SHA256SUMS) at IDApTIK main 462af7c (#230); SHA256SUMS is IDApTIK's own file. The ten documents vendored before from 22797e0 differ from these in the kernel label only: manifest.source (evil-weevil-1.1.0 -> evil-weevil-1.2.0), manifest.digest (which covers source) and, in the mind traces, producer.abi (1.1 -> 1.2). With the label put back and the old digest restored, each is byte-identical to its predecessor (checked 2026-11-15). The depth-0 policies file is unchanged. Do not edit the vendored files: re-vendor from a new commit and update this record."
 }

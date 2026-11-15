@@ -3,7 +3,8 @@ inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
 package profile: stub/esm/v1 1.0
 mind profile: stub-profile 0.0.0; producer: stub abi 1.1
 leak-verdict: unverified (no counterfactual seam)
-beliefs: 7; agrees-with-world: 3; diverges-from-world: 3; no-claim: 1
+beliefs: 6; agrees-with-world: 2; diverges-from-world: 3; no-claim: 1
+models: 1; stale-divergent: 0; refused: 0
 
 agent agent-a: commitment-override ticks: 2 of 6 (13..14) [tested]
   tells at: fixate@13..14; hesitate@15; startle@12
@@ -31,7 +32,7 @@ agent agent-a: commitment-override ticks: 2 of 6 (13..14) [tested]
 
 agent agent-b: commitment-override ticks: 0 of 2 [tested]
   tells at: hesitate@12
-  beliefs: 4; agrees-with-world: 2; diverges-from-world: 1; no-claim: 1
+  beliefs: 3; agrees-with-world: 1; diverges-from-world: 1; no-claim: 1
   ticks 10..10 (1 tick)
     affect: calm (initial); attention 900
     ranking: investigate > advance; incumbent: investigate; selected: investigate (rank 1); target: none
@@ -43,4 +44,11 @@ agent agent-b: commitment-override ticks: 0 of 2 [tested]
   belief 3: "door is south" (certain 10000..10000); in world truth -> agrees-with-world [tested]
   belief 4: "weather is rain" (suspected 5500..9000); absent from world truth -> diverges-from-world [tested]
   belief 5: "door is north" (unknown 3000..7000); absent from world truth -> no-claim [tested]
-  belief 6: as modelled by agent-a: "door is south" (believed 7500..9000); in world truth -> agrees-with-world [designed]
+
+model 6: agent-a models agent-b: "door is south" (believed 7500..9000: says it holds) [tested]
+  lifetime: from tick 14 (not superseded)
+  caused by: #17 observation@14
+  world: in world truth (a separate fact; a model is never compared with it)
+  compared with agent-b's own beliefs about it:
+    belief 3: certain (holds) ticks 10..; agrees-with-world
+  ticks 14..: agrees

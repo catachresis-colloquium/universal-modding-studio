@@ -1,0 +1,19 @@
+explain report ums-explain/2
+inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
+package profile: idaptik/weevil-corridor 1.0
+mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.2
+leak-verdict: unverified (no counterfactual seam)
+beliefs: 2; agrees-with-world: 1; diverges-from-world: 0; no-claim: 1
+models: 0; stale-divergent: 0; refused: 0
+
+agent contact-41: commitment-override ticks: 0 of 0 [tested]
+  beliefs: 2; agrees-with-world: 1; diverges-from-world: 0; no-claim: 1
+  belief 1: "guard-0 in room-0" (certain 10000..10000); in world truth -> agrees-with-world [tested]
+  belief 2: "guard-0 in room-0" (unknown 0..10000); in world truth -> no-claim [tested]
+
+agent guard-0: commitment-override ticks: 0 of 200 [tested]
+  beliefs: 0; agrees-with-world: 0; diverges-from-world: 0; no-claim: 0
+  ticks 1..200 (200 ticks)
+    affect: calm (initial); attention 0
+    ranking: advance > reload > evade > engage > investigate; incumbent: advance; selected: advance (rank 1); target: contact-41
+    tells: none

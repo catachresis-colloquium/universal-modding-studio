@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/catachresis-colloquium/enaction-engine",
+  "commit": "7c3586eaa867eaa5fd22575b166d4a48b76eaec0",
+  "branch": "main",
+  "path": "conformance/tom/v1",
+  "vendored_on": "2026-11-15",
+  "tree": "07c3b5904f956ebf7422063a05fec48e04843799",
+  "tree_note": "The git tree of conformance/tom/v1 is the same at 81fa3ed (#112, the C0 follow-up that fixed the timeline rule) and at 7c3586e (#113, docs only).",
+  "sha256sums_digest": "0005da7f8a0661ae7db3277e612ce7b1b0b95592439465c09dfcca0c7fdf986d",
+  "note": "Byte copy of conformance/tom/v1 at this commit. SHA256SUMS is upstream's own file; its digest is pinned here. Do not edit the vendored files: re-vendor from a new commit and update this record."
+}

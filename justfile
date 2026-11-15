@@ -177,23 +177,30 @@ roundtrip-idaptik IDAPTIK_ROOT="../IDApTIK":
 #   ENACTION_VALIDATE      enaction-engine: cargo build --locked -p enaction-contracts --bin enaction-validate
 #   IDAPTIK_WEEVIL_REPLAY  IDApTIK: cargo build --locked -p idaptik-weevil --bin idaptik-weevil-replay
 # Scenarios with a mind trace: the-grudge, the-grudge-control, the-flinch,
-# the-flinch-control. Belief-only: decoy-lure, cautious-sentry.
+# the-flinch-control. Belief-only: decoy-lure, cautious-sentry. Slice 2 model
+# scenarios (mind trace, depth-1 policies enaction-policies-models.json):
+# the-stalker, caught, false-exposure and their -control runs.
 preview-weevil SCENARIO="the-grudge" TICKS="200" SEED="7":
     #!/usr/bin/env bash
     set -euo pipefail
     : "${ENACTION_VALIDATE:?set ENACTION_VALIDATE to the enaction-validate binary}"
     : "${IDAPTIK_WEEVIL_REPLAY:?set IDAPTIK_WEEVIL_REPLAY to the idaptik-weevil-replay binary}"
     mind=()
+    policies=vendor/idaptik/enaction-policies.json
     case "{{SCENARIO}}" in
       the-grudge|the-grudge-control|the-flinch|the-flinch-control)
         mind=(--mind-trace-flag --emit-mind-trace) ;;
+      the-stalker|the-stalker-control|caught|caught-control|false-exposure|false-exposure-control)
+        # Slice 2: the runner output holds models (order 1), so depth 1.
+        mind=(--mind-trace-flag --emit-mind-trace)
+        policies=vendor/idaptik/enaction-policies-models.json ;;
       decoy-lure|cautious-sentry) ;;
       *) echo "preview-weevil: unknown scenario '{{SCENARIO}}'" >&2; exit 2 ;;
     esac
     cargo run -q --locked -p ums-profile-sdk --bin ums-profile -- preview \
       --runner "$IDAPTIK_WEEVIL_REPLAY" \
       --validator "$ENACTION_VALIDATE" \
-      --policies vendor/idaptik/enaction-policies.json \
+      --policies "$policies" \
       --runner-output-flag --emit-epistemic "${mind[@]}" \
       --runner-arg --profile --runner-arg "{{SCENARIO}}" \
       --runner-arg --ticks --runner-arg "{{TICKS}}" \
