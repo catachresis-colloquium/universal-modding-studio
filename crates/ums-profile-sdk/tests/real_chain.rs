@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 //! The preview against the REAL binaries: `idaptik-weevil-replay` (IDApTIK,
 //! with the Evil Weevil kernel) and `enaction-validate` (enaction-engine).
 //!

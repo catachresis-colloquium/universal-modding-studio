@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 name: 'Zig Hexadeca Check'
 description: 'Checks that Zig FFI implementations adhere to the unified-hexadeca-api and are pure.'
 runs:

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 name: 'Recipes Set Validation Gate'
 description: 'Parse-checks the repository task runner (Justfile / Makefile). Fails on a recipe file that does not parse.'
 runs:
