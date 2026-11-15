@@ -1,7 +1,7 @@
 explain report ums-explain/2
 inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
 package profile: idaptik/weevil-corridor 1.0
-mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.1
+mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.2
 leak-verdict: unverified (no counterfactual seam)
 beliefs: 36; agrees-with-world: 0; diverges-from-world: 36; no-claim: 0
 

@@ -25,6 +25,7 @@ use support::{check_vendored, copy_tree, read_json, repo_root, sha256_hex};
 use ums_profile_sdk::canonical::to_canonical_string;
 use ums_profile_sdk::explain::{explain, render_text};
 
+/// The runs before slice 2, under the depth-0 policies.
 const SCENARIOS: [&str; 6] = [
     "decoy-lure",
     "cautious-sentry",
@@ -33,6 +34,21 @@ const SCENARIOS: [&str; 6] = [
     "the-flinch",
     "the-flinch-control",
 ];
+
+/// Slice 2, "it models you": runs whose runner outputs hold models
+/// (order-1 beliefs), under the depth-1 policies.
+const MODEL_SCENARIOS: [&str; 6] = [
+    "the-stalker",
+    "the-stalker-control",
+    "caught",
+    "caught-control",
+    "false-exposure",
+    "false-exposure-control",
+];
+
+fn all_scenarios() -> impl Iterator<Item = &'static str> {
+    SCENARIOS.into_iter().chain(MODEL_SCENARIOS)
+}
 
 fn corridor() -> PathBuf {
     repo_root().join("vendor/idaptik/weevil-corridor")
@@ -77,15 +93,62 @@ fn the_vendored_policies_match_their_pinned_digest() {
 }
 
 #[test]
+fn the_vendored_model_policies_match_their_pinned_digest_and_allow_order_1() {
+    let record = read_json(&provenance());
+    let path = repo_root().join("vendor/idaptik/enaction-policies-models.json");
+    let bytes = fs::read(&path).unwrap();
+    assert_eq!(
+        json!(sha256_hex(&bytes)),
+        record["policies_models"]["sha256"],
+        "vendor/idaptik/enaction-policies-models.json"
+    );
+    assert_eq!(read_json(&path)["depth"]["max_order"], 1);
+    let depth_0 = read_json(&repo_root().join("vendor/idaptik/enaction-policies.json"));
+    assert_eq!(depth_0["depth"]["max_order"], 0);
+}
+
+#[test]
 fn every_scenario_has_its_runner_output_and_the_mind_scenarios_a_trace() {
-    for scenario in SCENARIOS {
-        let dir = corridor();
+    let dir = corridor();
+    let mut runs = 0;
+    for scenario in all_scenarios() {
+        runs += 1;
         assert!(
             dir.join(format!("{scenario}.runner-output.json")).is_file(),
             "{scenario}"
         );
         let has_trace = dir.join(format!("{scenario}.mind-trace.json")).is_file();
-        assert_eq!(has_trace, scenario.starts_with("the-"), "{scenario}");
+        let ee_tick_only = matches!(scenario, "decoy-lure" | "cautious-sentry");
+        assert_eq!(has_trace, !ee_tick_only, "{scenario}");
+    }
+    assert_eq!(runs, 12);
+    // 12 runner outputs and 10 mind traces, plus README.md and SHA256SUMS.
+    assert_eq!(fs::read_dir(&dir).unwrap().count(), 24);
+}
+
+#[test]
+fn the_model_runs_hold_models_and_the_earlier_runs_do_not() {
+    let order = |scenario: &str| -> usize {
+        let document = read_json(&corridor().join(format!("{scenario}.runner-output.json")));
+        document["package"]["beliefs"]
+            .as_array()
+            .map(|beliefs| {
+                beliefs
+                    .iter()
+                    .map(|belief| belief["holders"].as_array().map_or(0, Vec::len))
+                    .max()
+                    .unwrap_or(0)
+            })
+            .unwrap_or(0)
+    };
+    for scenario in SCENARIOS {
+        assert_eq!(order(scenario), 0, "{scenario}");
+    }
+    for scenario in ["the-stalker", "caught", "false-exposure"] {
+        assert_eq!(order(scenario), 1, "{scenario}");
+    }
+    for scenario in ["the-stalker-control", "caught-control", "false-exposure-control"] {
+        assert_eq!(order(scenario), 0, "{scenario}");
     }
 }
 
