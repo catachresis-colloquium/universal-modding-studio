@@ -291,15 +291,16 @@ fn models(scenario: &str) -> Vec<Model> {
 }
 
 #[test]
-fn false_exposure_has_a_model_that_agrees_at_21_and_diverges_from_22() {
+fn false_exposure_has_a_model_that_agrees_from_21_and_diverges_from_52() {
     // The guard thinks the contact knows where it is from tick 21 (belief 3,
-    // certain) and does not restate that until tick 112. The contact knows
-    // on tick 21 (belief 2) and stops knowing on tick 22 (belief 4, unknown).
+    // certain) and does not restate that until tick 112. The contact sees
+    // the guard on tick 21 (belief 2) and, with a memory of 30 ticks
+    // (IDApTIK 802b009), stops knowing on tick 52 (belief 4, unknown).
     assert_eq!(
         models("false-exposure"),
         vec![
             (1, vec![(1, "agrees")], Some(21), false),
-            (3, vec![(21, "agrees"), (22, "diverges")], Some(112), true),
+            (3, vec![(21, "agrees"), (52, "diverges")], Some(112), true),
             (5, vec![(112, "agrees")], None, false),
         ]
     );
@@ -312,11 +313,11 @@ fn false_exposure_has_a_model_that_agrees_at_21_and_diverges_from_22() {
     for line in [
         "model 3: guard-0 models contact-41: \"guard-0 in room-0\" (certain 10000..10000: says it holds) [tested]",
         "  lifetime: from tick 21 until tick 112; supersedes belief 1",
-        "    belief 2: certain (holds) ticks 21..21; agrees-with-world",
-        "    belief 4: unknown (does not hold) ticks 22..; no-claim",
-        "  ticks 21..21: agrees",
-        "  ticks 22..111: diverges",
-        "  stale-divergent: right when stated, wrong from tick 22 without being restated [tested]",
+        "    belief 2: certain (holds) ticks 21..51; agrees-with-world",
+        "    belief 4: unknown (does not hold) ticks 52..; no-claim",
+        "  ticks 21..51: agrees",
+        "  ticks 52..111: diverges",
+        "  stale-divergent: right when stated, wrong from tick 52 without being restated [tested]",
     ] {
         assert!(
             text.contains(&format!("{line}\n")),
@@ -337,21 +338,21 @@ fn the_stalker_models_are_right_throughout() {
 }
 
 #[test]
-fn caught_has_a_model_that_is_wrong_from_102_to_115_and_right_again_from_116() {
-    // By the letter of CAC-KERNEL section 9 this is stale-divergent: its
-    // first segment agrees and a later one diverges, even though the
-    // contact comes to know again on tick 116 and the model is right again.
+fn caught_has_a_model_that_agrees_from_101_to_the_end() {
+    // The contact glances at tick 101 and, with a memory of 30 ticks
+    // (IDApTIK 802b009), still knows when the guard's blows land from 116:
+    // its belief is certain from 101 on, so the guard's model is right
+    // throughout and not stale-divergent.
     assert_eq!(
         models("caught"),
         vec![
             (1, vec![(1, "agrees")], Some(101), false),
-            (
-                3,
-                vec![(101, "agrees"), (102, "diverges"), (116, "agrees")],
-                None,
-                true
-            ),
+            (3, vec![(101, "agrees")], None, false),
         ]
+    );
+    assert_eq!(
+        report("caught")["model_summary"],
+        json!({"models": 2, "stale_divergent": 0, "refused": 0})
     );
 }
 
@@ -381,4 +382,47 @@ fn a_corridor_model_is_never_compared_with_world_truth() {
         emptied["world_truth"] = json!([]);
         assert_eq!(model_timelines(&emptied).unwrap(), expected, "{scenario}");
     }
+}
+
+#[test]
+fn the_quickstart_excerpt_is_the_decoy_lure_golden_report() {
+    // docs/DESIGNER-QUICKSTART.adoc, section 3, says its excerpt is pinned
+    // byte for byte as decoy-lure.report.golden.txt. This test holds it to
+    // that: the first [source,text] block after the section heading must
+    // equal the golden exactly.
+    let page = fs::read_to_string(repo_root().join("docs/DESIGNER-QUICKSTART.adoc")).unwrap();
+    let section = page
+        .split("== 3. What the report says")
+        .nth(1)
+        .expect("section 3");
+    let block = section
+        .split("[source,text]\n----\n")
+        .nth(1)
+        .and_then(|rest| rest.split("\n----\n").next())
+        .expect("a [source,text] block");
+    let golden = fs::read_to_string(golden_path("decoy-lure", "txt")).unwrap();
+    assert_eq!(format!("{block}\n"), golden);
+}
+
+#[test]
+fn the_adapter_page_excerpt_is_a_block_of_the_false_exposure_golden() {
+    // docs/ENACTION-ADAPTER.adoc ("Models") quotes model 3 of the
+    // false-exposure text report. The quote must appear in the golden
+    // verbatim, so it cannot drift from the vendored documents.
+    let page = fs::read_to_string(repo_root().join("docs/ENACTION-ADAPTER.adoc")).unwrap();
+    let section = page
+        .split("For IDApTIK's `false-exposure` run the text report shows:")
+        .nth(1)
+        .expect("the false-exposure excerpt");
+    let block = section
+        .split("[source,text]\n----\n")
+        .nth(1)
+        .and_then(|rest| rest.split("\n----\n").next())
+        .expect("a [source,text] block");
+    assert!(block.starts_with("model 3: "), "{block}");
+    let golden = fs::read_to_string(golden_path("false-exposure", "txt")).unwrap();
+    assert!(
+        golden.contains(&format!("\n{block}\n")),
+        "the page's excerpt is not in false-exposure.report.golden.txt:\n{block}"
+    );
 }

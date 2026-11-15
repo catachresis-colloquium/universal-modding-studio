@@ -193,7 +193,10 @@ section 9's, and the runner emits one file per document.
   passes, when either variable is unset. All 5 tests passed against
   enaction-engine `d74a140`, evil-weevil `c655f46` and IDApTIK `22797e0`,
   including `the_grudge_cli_preview_matches_its_golden_report` (B2's
-  done_when). CI builds no sibling binaries, so this is not a CI gate
+  done_when). CI builds no sibling binaries, so this is not a CI gate.
+  2026-11-15: the file holds 8 tests after #113 (the six slice 2 model
+  scenarios); the coordinator reports all 8 passed against IDApTIK
+  `462af7c` on the ABI 1.2 kernel and the real validator
 
 | a timed-out runner's own child processes are also stopped
 | aspirational

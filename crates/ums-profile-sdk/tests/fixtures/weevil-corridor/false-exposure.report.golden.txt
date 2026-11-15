@@ -48,8 +48,8 @@ model 1: guard-0 models contact-41: "guard-0 in room-0" (rejected 0..0: says it 
   caused by: #1 observation@1
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:
-    belief 2: certain (holds) ticks 21..21; agrees-with-world
-    belief 4: unknown (does not hold) ticks 22..; no-claim
+    belief 2: certain (holds) ticks 21..51; agrees-with-world
+    belief 4: unknown (does not hold) ticks 52..; no-claim
   ticks 1..20: agrees
 
 model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: says it holds) [tested]
@@ -57,17 +57,17 @@ model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: s
   caused by: #2 observation@21
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:
-    belief 2: certain (holds) ticks 21..21; agrees-with-world
-    belief 4: unknown (does not hold) ticks 22..; no-claim
-  ticks 21..21: agrees
-  ticks 22..111: diverges
-  stale-divergent: right when stated, wrong from tick 22 without being restated [tested]
+    belief 2: certain (holds) ticks 21..51; agrees-with-world
+    belief 4: unknown (does not hold) ticks 52..; no-claim
+  ticks 21..51: agrees
+  ticks 52..111: diverges
+  stale-divergent: right when stated, wrong from tick 52 without being restated [tested]
 
 model 5: guard-0 models contact-41: "guard-0 in room-0" (rejected 0..0: says it does not hold) [tested]
   lifetime: from tick 112 (not superseded); supersedes belief 3
   caused by: #5 observation@112
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:
-    belief 2: certain (holds) ticks 21..21; agrees-with-world
-    belief 4: unknown (does not hold) ticks 22..; no-claim
+    belief 2: certain (holds) ticks 21..51; agrees-with-world
+    belief 4: unknown (does not hold) ticks 52..; no-claim
   ticks 112..: agrees

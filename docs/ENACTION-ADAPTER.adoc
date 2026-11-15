@@ -84,7 +84,7 @@ Status:
 * protocol: *tested* against stub binaries that copy the real command lines
   and exit codes (`tests/process_preview.rs`);
 * the explain lens on real runner documents: *tested*. The documents that
-  `idaptik-weevil-replay` wrote for six corridor scenarios are vendored by
+  `idaptik-weevil-replay` wrote for twelve corridor scenarios are vendored by
   digest in `vendor/idaptik/weevil-corridor` and their reports are pinned
   (`tests/vendored_idaptik.rs`). No validator runs in that test; that each
   pair exits 0 from `enaction-validate` is IDApTIK's recorded claim;
@@ -92,8 +92,9 @@ Status:
   `tests/real_chain.rs`, that needs `ENACTION_VALIDATE` and
   `IDAPTIK_WEEVIL_REPLAY`. It is not run in CI. All 5 of its tests passed
   by hand on 2026-11-14 against enaction-engine `d74a140`, evil-weevil
-  `c655f46` and IDApTIK `22797e0`. `just preview-weevil` runs the same
-  chain for one scenario.
+  `c655f46` and IDApTIK `22797e0`. After #113 it holds 8; the coordinator
+  reports all 8 passed on 2026-11-15 against IDApTIK `462af7c` on the ABI
+  1.2 kernel. `just preview-weevil` runs the same chain for one scenario.
 
 `docs/DESIGNER-QUICKSTART.adoc` has the commands.
 
@@ -171,11 +172,11 @@ model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: s
   caused by: #2 observation@21
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:
-    belief 2: certain (holds) ticks 21..21; agrees-with-world
-    belief 4: unknown (does not hold) ticks 22..; no-claim
-  ticks 21..21: agrees
-  ticks 22..111: diverges
-  stale-divergent: right when stated, wrong from tick 22 without being restated [tested]
+    belief 2: certain (holds) ticks 21..51; agrees-with-world
+    belief 4: unknown (does not hold) ticks 52..; no-claim
+  ticks 21..51: agrees
+  ticks 52..111: diverges
+  stale-divergent: right when stated, wrong from tick 52 without being restated [tested]
 ----
 
 `explain::model_timelines` gives the same derivation in the shape of the
@@ -188,10 +189,17 @@ no model verdict changes when world truth is emptied or filled. In a preview
 the validator applies the depth rule; the lens repeats it only so that a
 reader of the vendored corpus refuses what the corpus refuses.
 
+The contact in that run sees the guard on tick 21 and remembers it for 30
+ticks (IDApTIK's world rule since `802b009`), so its own belief turns
+`unknown` on tick 52. The guard does not restate its model until tick 112:
+right on 21 to 51, wrong on 52 to 111.
+
 The rule says "holds" or "does not hold" and compares no intervals: a
 `suspected` model agrees with a `certain` own belief. By the letter of the
-rule a model that goes wrong and then right again (IDApTIK's `caught`, ticks
-102 to 115) is also stale-divergent.
+rule a model that goes wrong and then right again is also stale-divergent.
+IDApTIK's `caught` was such a case before contacts gained their memory
+(wrong on 102 to 115, vendored from `462af7c`); since `802b009` the contact
+still knows when the blows land, and the model agrees from 101 to the end.
 
 The report is canonical JSON (`ums-explain/3`, RFC 8785 for integer-only
 documents) plus a plain-text rendering, pinned by golden files in
