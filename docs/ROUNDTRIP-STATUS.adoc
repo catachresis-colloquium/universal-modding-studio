@@ -3,31 +3,31 @@
 
 = Round-trip status
 
-Last assessed: 2026-11-15. Source commit: `a7031eb` (UMS `main`).
+Last assessed: 2026-11-15 (second pass). Source commit: `8901ef1` (UMS `main`).
 
 [NOTE]
-.2026-11-15: the IDApTIK round trip runs again
+.2026-11-15: the IDApTIK round trip runs again, locally and in CI
 ====
-`just roundtrip-idaptik` passed on 2026-11-15 at UMS `a7031eb` against
-IDApTIK `58d6936` (`58d6936f02fbfb13477ee5ff520d06fc4e21e7ba`, the head of its
-default branch). It printed:
+*In CI:* the step "UMS to IDApTIK round trip through the real game loader"
+passed on `main` at `8901ef1`. That is Rust CI run `43703053968`, job
+`132778148858`, step 10. CI checks out `metadatastician/IDApTIK`, which has
+the same default-branch head as `catachresis-colloquium/IDApTIK`.
+
+*Locally:* `just roundtrip-idaptik` passed at `8901ef1` against IDApTIK
+`802b009`. It printed:
 
 ....
 roundtrip-idaptik: UMS artifact accepted, executed, snapshotted, restored and replayed identically
 ....
 
-IDApTIK now has `crates/idaptik-core/examples/package-runner.rs` (Enaction
-completion-plan step 6(a)). The 2026-11-14 notice is therefore retired: on
-that day IDApTIK `44d142d` had no such example, and cargo refused to run it.
+It first passed again on the morning of 2026-11-15, at `a7031eb` against
+IDApTIK `58d6936`. That commit restored
+`crates/idaptik-core/examples/package-runner.rs` (Enaction completion-plan
+step 6(a)). Before then the example was missing, so neither the recipe nor
+the CI step could pass. On 2026-11-14, for example, IDApTIK `44d142d` had no
+such example and cargo refused to run it.
 
-`rust-ci.yml` checks out `metadatastician/IDApTIK`. On 2026-11-15
-`git ls-remote` gave the same head, `58d6936`, for that name and for
-`catachresis-colloquium/IDApTIK`.
-
-*Current status: tested locally on 2026-11-15.* The CI step
-"UMS to IDApTIK round trip through the real game loader" is expected to pass
-at the same IDApTIK head. That is *OPEN*: no CI run at that head has been
-observed.
+*Current status: tested, and CI-gated (observed green on 2026-11-15).*
 ====
 
 == IDApTIK: executed and gated (record from 2026-07-27)
@@ -70,7 +70,7 @@ on 2026-07-27.
 checks the game out as a sibling, builds the game's own crate, and fails the
 build if the loader rejects the artifact or the replay diverges.
 
-**Status (2026-07-28; re-run locally 2026-11-15, see the note above): tested.** Every clause of ADR-0014 was then met -- an authored fixture
+**Status (2026-07-28; re-run locally and in CI on 2026-11-15, see the note above): tested.** Every clause of ADR-0014 was then met -- an authored fixture
 is validated, compiled, loaded by the real game loader, and compared with the
 post-edit model, including deterministic repeat output.
 
@@ -104,15 +104,15 @@ repository agrees.
 
 * Slavia has no loader round trip of any kind.
 * The Enaction preview (ADR-0019) ran against the real runner and validator
-  by hand on 2026-11-15 (`tests/real_chain.rs`, 5 of 5 passed), but it is not
+  by hand on 2026-11-15 (`tests/real_chain.rs`, 8 of 8 passed at `8901ef1`), but it is not
   in CI. It is not a substitute for a loader round trip.
-* The IDApTIK loader round trip passed locally on 2026-11-15; the CI step at
-  IDApTIK `58d6936` is OPEN until a run is observed.
+* The IDApTIK loader round trip tests one concrete fixture and path
+  (`ghost-lobby.ums.json`), not arbitrary authored content.
 
 == Next steps, in order
 
-. **Observe the CI gate green at IDApTIK `58d6936` or later.** Until a CI run
-  is observed, the round trip is tested locally, not CI-gated.
+. **Keep the CI gate green.** It was observed green on 2026-11-15 (Rust CI
+  run `43703053968`).
 . Extend the comparison to Slavia when it grows a loader.
 . Consider comparing scenario *semantics* (not bytes) if the compiler ever
   starts synthesising scenario content rather than copying the game fixture.
