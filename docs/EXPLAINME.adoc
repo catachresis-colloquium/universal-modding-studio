@@ -204,7 +204,7 @@ Caveat::
 *Corrected 2026-11-15.* This caveat used to say no CI job loads a UMS artifact
 into IDApTIK. That was out of date: `rust-ci.yml` has a round-trip step (see
 the table below and `docs/ROUNDTRIP-STATUS.adoc`). On 2026-11-15
-`just roundtrip-idaptik` passed locally at UMS `87ffbcf` against IDApTIK
+`just roundtrip-idaptik` passed locally at UMS `a7031eb` against IDApTIK
 `58d6936`. No CI run at that IDApTIK head has been observed yet. The round
 trip tests one concrete fixture and path, not arbitrary authored content.
 
@@ -305,7 +305,7 @@ tracked file; it does not gate language.
   `docs/ABI-REPRESENTATION.adoc`.
 
 | UMS → game round trip
-| *Tested locally on 2026-11-15* at UMS `87ffbcf` against IDApTIK `58d6936`.
+| *Tested locally on 2026-11-15* at UMS `a7031eb` against IDApTIK `58d6936`.
   The CI step is OPEN until a run at that IDApTIK head is observed. Between
   the loss of IDApTIK's `package-runner` example and its restoration at
   `58d6936`, neither the recipe nor the CI step could pass.

@@ -3,12 +3,12 @@
 
 = Round-trip status
 
-Last assessed: 2026-11-15. Source commit: `87ffbcf` (UMS `main`).
+Last assessed: 2026-11-15. Source commit: `a7031eb` (UMS `main`).
 
 [NOTE]
 .2026-11-15: the IDApTIK round trip runs again
 ====
-`just roundtrip-idaptik` passed on 2026-11-15 at UMS `87ffbcf` against
+`just roundtrip-idaptik` passed on 2026-11-15 at UMS `a7031eb` against
 IDApTIK `58d6936` (`58d6936f02fbfb13477ee5ff520d06fc4e21e7ba`, the head of its
 default branch). It printed:
 

@@ -13,7 +13,7 @@ the abstraction. Neither is flattened to fit the other.
 
 == Gate record, 2026-11-15
 
-The gates behind this affirmation ran on source commit `87ffbcf` (UMS
+The gates behind this affirmation ran on source commit `a7031eb` (UMS
 `main`). A record cannot name its own commit, so it names the commit the
 gates ran on; that commit is an ancestor of this one. The full table is in
 `docs/READINESS.md`, under "Gate record, 2026-11-15".
@@ -23,11 +23,12 @@ the IDApTIK round trip; the architecture boundary gate and its planted
 violations; DLC, Slavia, edit-script, Nickel configuration and generation
 drift; the studio tests and build; and the compiled Zig symbol gate.
 
+Also passed, in CI: the licence-hygiene workflow, after #109.
+
 Failed: one Zig FFI integration test, whose fixture still uses the guard rank
-`chief` that `ace5777` renamed; and the licence-hygiene workflow, because of
-MPL-2.0 headers under `.github/`.
+`chief` that `ace5777` renamed.
 
 Open, not run, with the reason recorded: the Idris2 proofs (no Idris2), SPARK
-(no GNATprove), REUSE lint (no `reuse`), the `dlc/vm` reversibility check (no
+(no GNATprove), REUSE lint with the `reuse` tool (not installed), the `dlc/vm` reversibility check (no
 AffineScript), the `mise`-guarded Zig recipes (no `mise`), and the CI
 round-trip step at IDApTIK `58d6936` (no run observed).
