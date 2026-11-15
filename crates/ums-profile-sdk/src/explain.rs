@@ -61,7 +61,7 @@ use std::fmt;
 use std::fmt::Write as _;
 
 /// Contract tag of the report.
-pub const REPORT_CONTRACT: &str = "ums-explain/2";
+pub const REPORT_CONTRACT: &str = "ums-explain/3";
 /// Contract tag of the mind trace this lens reads.
 pub const MIND_TRACE_CONTRACT: &str = "enaction-mind-trace/1";
 /// Contract tag of the runner output this lens reads.

@@ -561,3 +561,31 @@ fn cli_preview_explain_prints_the_designer_report() {
     );
     assert!(!stdout.contains("no-leak"), "{stdout}");
 }
+
+#[test]
+fn the_report_tag_is_ums_explain_3_and_every_golden_carries_it() {
+    // ums-explain/3: models are no longer compared with world truth or
+    // counted in the per-agent belief summaries, a changed meaning, so the
+    // tag was bumped (docs/ENACTION-ADAPTER.adoc, "Report versions").
+    assert_eq!(REPORT_CONTRACT, "ums-explain/3");
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let mut goldens = 0;
+    for dir in ["explain", "weevil-corridor"] {
+        for entry in std::fs::read_dir(fixtures.join(dir)).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+            if name.ends_with(".golden.txt") {
+                let text = std::fs::read_to_string(&path).unwrap();
+                assert!(text.starts_with("explain report ums-explain/3\n"), "{name}");
+                goldens += 1;
+            } else if name.ends_with(".golden.json") {
+                let report: Value =
+                    serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+                assert_eq!(report["report"], "ums-explain/3", "{name}");
+                goldens += 1;
+            }
+        }
+    }
+    // One text and one JSON golden for the stub and each of 12 scenarios.
+    assert_eq!(goldens, 26);
+}
