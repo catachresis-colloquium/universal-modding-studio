@@ -8,9 +8,12 @@ runs them as processes and reads the files they write (ADR-0019).
 
 == 1. Build the three pieces
 
-These commands are copied from the work package brief. *They were not run
-here*: the container that wrote this page builds no code from the sibling
-repositories. Each one is the owning repository's documented build.
+Each one is the owning repository's documented build. *All of them were
+run on 2026-11-14*, exactly as written, at enaction-engine `d74a140`,
+evil-weevil `c655f46` and IDApTIK `22797e0`, with Zig 0.16.0. The kernel's
+own tests passed there (`zig build test`: 43/43). The zig command writes
+`libevil_weevil.a` to `src/interface/ffi/zig-out/lib`, which is where
+IDApTIK's `build.rs` looks under `EVIL_WEEVIL_ROOT`.
 
 [source,bash]
 ----
@@ -19,15 +22,15 @@ git clone --depth 1 https://github.com/catachresis-colloquium/enaction-engine
 git clone --depth 1 https://github.com/catachresis-colloquium/evil-weevil
 git clone --depth 1 https://github.com/catachresis-colloquium/IDApTIK
 
-# The validator (not run here).
+# The validator.
 (cd enaction-engine && cargo build --locked -p enaction-contracts --bin enaction-validate)
 
-# The Evil Weevil kernel, with Zig 0.16.0 (not run here).
+# The Evil Weevil kernel, with Zig 0.16.0.
 python3 -m pip install --no-cache-dir --target "$HOME/zig16" ziglang==0.16.0
 export PATH="$HOME/zig16/ziglang:$PATH"
 (cd evil-weevil && zig build --build-file src/interface/ffi/build.zig)
 
-# The corridor runner (not run here).
+# The corridor runner.
 (cd IDApTIK && EVIL_WEEVIL_ROOT="$HOME/weevil/evil-weevil" \
   cargo build --locked -p idaptik-weevil --bin idaptik-weevil-replay)
 ----
@@ -168,3 +171,29 @@ than passes, if either variable is unset:
 ENACTION_VALIDATE=... IDAPTIK_WEEVIL_REPLAY=... \
   cargo test --locked -p ums-profile-sdk --test real_chain -- --ignored --nocapture
 ----
+
+On 2026-11-14 all 5 tests passed against binaries built by section 1, both
+debug and release. One of them,
+`the_grudge_cli_preview_matches_its_golden_report`, runs the designer
+command for "the grudge" and requires its output to equal
+`tests/fixtures/weevil-corridor/the-grudge.report.golden.txt`, apart from
+the two header lines and the validation state. It reports 37
+commitment-override ticks (20..56). The test is not in CI, because CI builds
+no sibling binaries.
+
+== Shortcut: `just preview-weevil`
+
+With `ENACTION_VALIDATE` and `IDAPTIK_WEEVIL_REPLAY` exported, one recipe
+runs the whole preview for a scenario (default `the-grudge`, 200 ticks,
+seed 7):
+
+[source,bash]
+----
+just preview-weevil                 # the grudge
+just preview-weevil the-flinch      # any mind scenario
+just preview-weevil decoy-lure 200 7
+----
+
+It adds the mind-trace flags only for the four mind scenarios. It fails
+with exit 1 when either variable is unset, and with exit 2 for an unknown
+scenario. All four behaviours were run on 2026-11-14 with just 1.59.0.

@@ -20,6 +20,14 @@
 //! Expected figures (measured by the coordinator on the real chain on
 //! 2026-11-14): decoy-lure, 200 ticks, seed 7, has 36 beliefs and every one
 //! diverges from the world; cautious-sentry has 36 and every one agrees.
+//!
+//! The six slice 2 model scenarios (the-stalker, caught, false-exposure
+//! and their controls) hold models, beliefs of order 1. They are previewed
+//! under the depth-1 policies `vendor/idaptik/enaction-policies-models.json`;
+//! under the depth-0 file the real validator must refuse them as
+//! `nesting-bounded`. Their figures are those of the vendored documents
+//! (IDApTIK 462af7c) and have NOT been measured on the real chain by this
+//! package: the tests below are written, not run.
 
 mod support;
 
@@ -64,6 +72,20 @@ fn policies() -> PathBuf {
     repo_root().join("vendor/idaptik/enaction-policies.json")
 }
 
+/// The depth-1 policies of the slice 2 model scenarios.
+fn model_policies() -> PathBuf {
+    repo_root().join("vendor/idaptik/enaction-policies-models.json")
+}
+
+const MODEL_SCENARIOS: [&str; 6] = [
+    "the-stalker",
+    "the-stalker-control",
+    "caught",
+    "caught-control",
+    "false-exposure",
+    "false-exposure-control",
+];
+
 fn corridor(name: &str) -> PathBuf {
     repo_root()
         .join("vendor/idaptik/weevil-corridor")
@@ -73,8 +95,11 @@ fn corridor(name: &str) -> PathBuf {
 /// `ums-profile preview --explain` for one corridor profile, through the
 /// CLI a designer uses. Returns stdout; fails the test on a non-zero exit.
 fn cli_preview(profile: &str, mind: bool) -> String {
+    cli_preview_with(profile, mind, &policies())
+}
+
+fn cli_preview_with(profile: &str, mind: bool, policies: &Path) -> String {
     let bin = binaries();
-    let policies = policies();
     let mut args: Vec<String> = vec![
         "preview".into(),
         "--runner".into(),
@@ -135,11 +160,47 @@ fn cautious_sentry_previews_with_every_belief_agreeing() {
     );
 }
 
+/// Package B2's done_when, through the command a designer runs: the
+/// preview of "the grudge" prints `replay-identical: ok`, reports at least
+/// one commitment-override tick, and matches its golden report. The golden
+/// is rendered from the vendored (unvalidated) documents, so the CLI form
+/// differs only in its two header lines and the validation state.
+#[test]
+#[ignore = "needs the real enaction-validate and idaptik-weevil-replay (ENACTION_VALIDATE, IDAPTIK_WEEVIL_REPLAY)"]
+fn the_grudge_cli_preview_matches_its_golden_report() {
+    let stdout = cli_preview("the-grudge", true);
+    let golden = fs::read_to_string(repo_root().join(
+        "crates/ums-profile-sdk/tests/fixtures/weevil-corridor/the-grudge.report.golden.txt",
+    ))
+    .expect("the-grudge text golden");
+    assert_eq!(
+        golden.matches("(not-validated)").count(),
+        1,
+        "the golden names its validation state exactly once"
+    );
+    let expected = format!(
+        "replay-identical: ok\nvalidator: accepted (exit 0)\n{}",
+        golden.replacen("(not-validated)", "(validator-accepted)", 1)
+    );
+    assert!(
+        stdout.contains("commitment-override ticks: 37 of 200"),
+        "{stdout}"
+    );
+    assert_eq!(
+        stdout, expected,
+        "the-grudge CLI report differs from its golden"
+    );
+}
+
 /// The library adapter with both documents, for the mind scenarios.
 fn adapter(profile: &str) -> ProcessPreviewAdapter {
+    adapter_with(profile, policies())
+}
+
+fn adapter_with(profile: &str, policies: PathBuf) -> ProcessPreviewAdapter {
     let bin = binaries();
     ProcessPreviewAdapter::new(bin.runner, bin.validator)
-        .with_policies(policies())
+        .with_policies(policies)
         .with_runner_args([
             "--profile",
             profile,
@@ -277,4 +338,97 @@ fn a_tampered_runner_output_is_refused_by_the_real_validator_with_the_digest_rul
         }
         other => panic!("expected ValidatorRefused, got {other}"),
     }
+}
+
+/// The model counts of the vendored slice 2 documents: (models,
+/// stale-divergent). Pinned by `tests/vendored_idaptik.rs` on the vendored
+/// bytes; here the real runner must reproduce those bytes.
+fn expected_models(profile: &str) -> (u64, u64) {
+    match profile {
+        "the-stalker" => (2, 0),
+        "caught" => (2, 1),
+        "false-exposure" => (3, 1),
+        "the-stalker-control" | "caught-control" | "false-exposure-control" => (0, 0),
+        other => panic!("not a model scenario: {other}"),
+    }
+}
+
+#[test]
+#[ignore = "needs the real enaction-validate and idaptik-weevil-replay (ENACTION_VALIDATE, IDAPTIK_WEEVIL_REPLAY)"]
+fn the_model_scenarios_match_their_vendored_documents_under_the_depth_1_policies() {
+    for profile in MODEL_SCENARIOS {
+        let outcome = adapter_with(profile, model_policies())
+            .run(None)
+            .unwrap_or_else(|error| panic!("{profile}: {error}"));
+        same_as_vendored(profile, "runner-output", &outcome.runner_output);
+        same_as_vendored(
+            profile,
+            "mind-trace",
+            outcome.mind_trace.as_deref().expect("mind trace"),
+        );
+        let report = explain(
+            &outcome.runner_output_document().unwrap(),
+            outcome.mind_trace_document().unwrap().as_ref(),
+            true,
+        )
+        .unwrap();
+        println!(
+            "{profile}: replay-identical: ok; validator accepted; {}",
+            report["model_summary"]
+        );
+        let (models, stale) = expected_models(profile);
+        assert_eq!(report["model_summary"]["models"], models, "{profile}");
+        assert_eq!(
+            report["model_summary"]["stale_divergent"], stale,
+            "{profile}"
+        );
+        assert_eq!(report["model_summary"]["refused"], 0, "{profile}");
+    }
+}
+
+#[test]
+#[ignore = "needs the real enaction-validate and idaptik-weevil-replay (ENACTION_VALIDATE, IDAPTIK_WEEVIL_REPLAY)"]
+fn a_model_scenario_is_refused_as_nesting_bounded_under_the_depth_0_policies() {
+    for profile in ["the-stalker", "caught", "false-exposure"] {
+        let error = adapter(profile)
+            .run(None)
+            .expect_err("an order-1 package under depth 0 must be refused");
+        println!("{profile}: {error}");
+        match &error {
+            PreviewError::ValidatorRefused { rule, .. } => {
+                assert_eq!(
+                    rule.as_deref(),
+                    Some("nesting-bounded"),
+                    "{profile}: {error}"
+                );
+            }
+            other => panic!("{profile}: expected ValidatorRefused, got {other}"),
+        }
+    }
+}
+
+/// The designer's command for false-exposure, against its golden report:
+/// the guard's model agrees at tick 21 and diverges from tick 22, marked
+/// stale-divergent.
+#[test]
+#[ignore = "needs the real enaction-validate and idaptik-weevil-replay (ENACTION_VALIDATE, IDAPTIK_WEEVIL_REPLAY)"]
+fn the_false_exposure_cli_preview_matches_its_golden_report() {
+    let stdout = cli_preview_with("false-exposure", true, &model_policies());
+    let golden = fs::read_to_string(repo_root().join(
+        "crates/ums-profile-sdk/tests/fixtures/weevil-corridor/false-exposure.report.golden.txt",
+    ))
+    .expect("false-exposure text golden");
+    assert_eq!(golden.matches("(not-validated)").count(), 1);
+    let expected = format!(
+        "replay-identical: ok\nvalidator: accepted (exit 0)\n{}",
+        golden.replacen("(not-validated)", "(validator-accepted)", 1)
+    );
+    assert!(
+        stdout.contains("  stale-divergent: right when stated, wrong from tick 22 without being restated [tested]\n"),
+        "{stdout}"
+    );
+    assert_eq!(
+        stdout, expected,
+        "false-exposure CLI report differs from its golden"
+    );
 }

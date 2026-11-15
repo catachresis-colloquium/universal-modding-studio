@@ -90,7 +90,10 @@ Status:
   pair exits 0 from `enaction-validate` is IDApTIK's recorded claim;
 * the preview against the real binaries: an `#[ignore]`d test,
   `tests/real_chain.rs`, that needs `ENACTION_VALIDATE` and
-  `IDAPTIK_WEEVIL_REPLAY`. It is not run in CI.
+  `IDAPTIK_WEEVIL_REPLAY`. It is not run in CI. All 5 of its tests passed
+  by hand on 2026-11-14 against enaction-engine `d74a140`, evil-weevil
+  `c655f46` and IDApTIK `22797e0`. `just preview-weevil` runs the same
+  chain for one scenario.
 
 `docs/DESIGNER-QUICKSTART.adoc` has the commands.
 
@@ -110,9 +113,10 @@ the selected candidate and its rank, and the tells, with the ticks of each
 tell. It derives `commitment-override` (selected equals incumbent and is not
 first in the ranking) and lists the override ticks per agent.
 
-Beliefs are compared with world truth under the closed-world rule of
-CAC-KERNEL section 9: world truth holds every stated proposition that is true
-in the run, so a stated proposition absent from it is false. A held belief
+Beliefs of order 0 (empty `holders`) are compared with world truth under the
+closed-world rule of CAC-KERNEL section 9: world truth holds every stated
+proposition that is true in the run, so a stated proposition absent from it
+is false. A held belief
 (`certain`, `believed`, `suspected`) agrees with the world when its
 proposition is present and diverges when it is absent; a `rejected` belief
 diverges when its proposition is present; `unknown` makes no claim. The
@@ -120,13 +124,83 @@ report counts agreeing, diverging and no-claim beliefs per agent and overall.
 The lens cannot check that a runner's world truth really is closed; that is
 the runner's rule and its tests'.
 
+=== Models
+
+A belief of order 1 or more is a _model_: `holders = ["guard-0"]`,
+`bearer = "contact-41"` is guard-0's model of what contact-41 believes. By
+CAC-KERNEL section 9, "Models are compared with minds" (enaction-engine
+ADR-0028), a model is never compared with world truth. The lens derives,
+from the runner output alone, the timeline of every model in the package:
+
+* the _compared beliefs_ have the model's `holders` without the outermost
+  holder, the same bearer and the same proposition. At order 1 they are the
+  bearer's own beliefs;
+* a belief _holds_ its proposition when it is `certain`, `believed` or
+  `suspected`, and holds at tick _t_ from its `valid_from` until a belief
+  that names it in `supersedes` starts;
+* a model's lifetime runs from its `valid_from` to the earliest `valid_from`
+  of a belief that supersedes it (`until`), or to the end of the package.
+  At each tick of it the model _agrees_ when it says the compared belief
+  holds and it does, or says it does not and it does not; otherwise it
+  _diverges_. A model with status `unknown` makes no claim (`no-claim`);
+* the timeline is the list of segments where the verdict changes. A model
+  is _stale-divergent_ when its first segment agrees and a later one
+  diverges: it was right when it was stated and went wrong without being
+  restated;
+* when more than one compared belief holds at a tick of the lifetime, the
+  model is shown as refused (`model-counterpart-unique`) and no timeline is
+  chosen.
+
+The report's `models` section has one entry per model, in belief-id order:
+the holder path, bearer, proposition, status and what the model claims, its
+lifetime, the events it cites, whether the world holds the proposition (a
+separate fact, never compared with the model), the compared beliefs with
+their own tick ranges and, for order 0, their world verdict, each segment
+with its ticks and verdict, and the stale-divergent mark. The four facts
+for one proposition stand side by side: the world, what the bearer
+believes, what the holder thinks the bearer believes, and whether the
+holder is right. The header line `models: N; stale-divergent: N; refused:
+N` counts them; models are not in the per-agent belief counts.
+
+For IDApTIK's `false-exposure` run the text report shows:
+
+[source,text]
+----
+model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: says it holds) [tested]
+  lifetime: from tick 21 until tick 112; supersedes belief 1
+  caused by: #2 observation@21
+  world: in world truth (a separate fact; a model is never compared with it)
+  compared with contact-41's own beliefs about it:
+    belief 2: certain (holds) ticks 21..21; agrees-with-world
+    belief 4: unknown (does not hold) ticks 22..; no-claim
+  ticks 21..21: agrees
+  ticks 22..111: diverges
+  stale-divergent: right when stated, wrong from tick 22 without being restated [tested]
+----
+
+`explain::model_timelines` gives the same derivation in the shape of the
+`expected.json` files of Enaction's `conformance/tom/v1`, vendored by digest
+in `vendor/enaction/conformance/tom/v1`. `tests/vendored_tom.rs` checks that
+each of its seven accepted cases derives exactly its `expected.json`, that
+`explain::check_depth` refuses the rejected case as `nesting-bounded` at
+`package.beliefs[belief_id=1].holders` under the corpus depth of 1, and that
+no model verdict changes when world truth is emptied or filled. In a preview
+the validator applies the depth rule; the lens repeats it only so that a
+reader of the vendored corpus refuses what the corpus refuses.
+
+The rule says "holds" or "does not hold" and compares no intervals: a
+`suspected` model agrees with a `certain` own belief. By the letter of the
+rule a model that goes wrong and then right again (IDApTIK's `caught`, ticks
+102 to 115) is also stale-divergent.
+
 The report is canonical JSON (`ums-explain/2`, RFC 8785 for integer-only
 documents) plus a plain-text rendering, pinned by golden files in
 `crates/ums-profile-sdk/tests/fixtures/explain` (stub documents in the real
 shapes) and `crates/ums-profile-sdk/tests/fixtures/weevil-corridor` (real
-runner documents). Each derived row carries a guarantee level: `tested`
-where a test covers it, and `designed` for nested beliefs (non-empty
-`holders`).
+runner documents, one per corridor scenario, including the six slice 2
+model scenarios). Each derived row carries a guarantee level; every row is
+`tested` today. Before the models section, a nested belief was compared with
+the world and marked `designed`; it is now a model.
 
 The vendored Enaction corpus (`vendor/enaction/conformance/mind/v1`) checks
 the lens against the owner's fixtures: for `the-grudge` it reports exactly
