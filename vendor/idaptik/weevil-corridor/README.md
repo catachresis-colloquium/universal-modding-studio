@@ -23,9 +23,10 @@ not match the complete sorted file set.
   its 1.1 predecessor.
 - Validator: catachresis-colloquium/enaction-engine `main` at `03cb27b`,
   `enaction-validate`, for the six runs before slice 2. The six model runs were checked
-  with `enaction-validate` built from pull request 112 (`marina/weevil-c0-models`,
-  not merged) at `0a67878`, the contract of `conformance/tom/v1` and ADR-0028;
-  those six runs' documents exit 0 from that build too. Every document here exits 0.
+  with `enaction-validate` built from enaction-engine `main` at `81fa3ed` (pull
+  request 112, the contract of `conformance/tom/v1` and ADR-0028; the build was
+  made from that pull request's head `0a67878`, whose tree `1e6da84` is the
+  same); those six runs' documents exit 0 from that build too. Every document here exits 0.
 - Policies: `../enaction-policies.json` (`depth.max_order` 0) for the six
   runs before slice 2, and `../enaction-policies-models.json` (the same status policy,
   `depth.max_order` 1) for the six model runs. Under the depth-0 file a model
@@ -56,6 +57,29 @@ contact's glance and the contact's own belief.
 
 A mind trace's `caused_by` ids name events of the runner output with the same
 profile, which comes from the same run.
+
+## What a contact knows
+
+The contact's own belief follows the world's rule, in `src/world.rs`: a
+scripted contact has `memory`, a count of ticks (default 0), and it knows
+where the guard is on tick `t` exactly when a tick `s` exists with
+`t - memory <= s <= t` on which it observed the guard, or the guard's attack
+on it was applied. In the six model runs contact 41 has a memory of 30 ticks.
+
+The memory changed three runner outputs and nothing else:
+
+- `caught.runner-output.json`: the contact glances at 101 and still knows
+  when the blows land from 116, so its belief is `certain` from 101 to the
+  end. Before, it was `unknown` on 102 to 115 and the guard's model read as
+  stale.
+- `false-exposure.runner-output.json` and
+  `false-exposure-control.runner-output.json`: the contact's belief turns
+  `unknown` on 52, the first tick after its memory ends, instead of 22. The
+  guard's model still holds until 112, so it agrees on 21 to 51 and diverges
+  from 52.
+
+The kernel learns nothing of a contact's memory, so every mind trace is
+byte-identical to its bytes before the change. `tests/golden.rs` pins them.
 
 ## Commands
 
