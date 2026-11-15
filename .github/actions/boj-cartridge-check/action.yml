@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 name: 'BoJ Cartridge Gate'
 description: 'Checks for a BoJ cartridge when BoJ integration is applicable.'
 inputs:

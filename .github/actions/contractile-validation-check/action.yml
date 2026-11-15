@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 name: 'Contractile Validation Gate'
 description: 'Validates that contractiles (must, trust, adjust, dust, bust, intend) are readable by their runners and the self-validating folder has required k9s.'
 runs:
