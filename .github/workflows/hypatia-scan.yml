@@ -22,4 +22,4 @@ permissions:
 
 jobs:
   scan:
-    uses: metadatastician/standards/.github/workflows/hypatia-scan-reusable.yml@cc58c0cb23f73fc2019ce85a56a468e5248a93b3
+    uses: metadatastician/standards/.github/workflows/hypatia-scan-reusable.yml@b8f60511e76c9015d86990317162dce653c92fe1
