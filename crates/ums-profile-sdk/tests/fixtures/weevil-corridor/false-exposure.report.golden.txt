@@ -1,0 +1,73 @@
+explain report ums-explain/2
+inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
+package profile: idaptik/weevil-corridor 1.0
+mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.2
+leak-verdict: unverified (no counterfactual seam)
+beliefs: 2; agrees-with-world: 1; diverges-from-world: 0; no-claim: 1
+models: 3; stale-divergent: 1; refused: 0
+
+agent contact-41: commitment-override ticks: 0 of 0 [tested]
+  beliefs: 2; agrees-with-world: 1; diverges-from-world: 0; no-claim: 1
+  belief 2: "guard-0 in room-0" (certain 10000..10000); in world truth -> agrees-with-world [tested]
+  belief 4: "guard-0 in room-0" (unknown 0..10000); in world truth -> no-claim [tested]
+
+agent guard-0: commitment-override ticks: 0 of 200 [tested]
+  tells at: caught@21
+  beliefs: 0; agrees-with-world: 0; diverges-from-world: 0; no-claim: 0
+  ticks 1..1 (1 tick)
+    affect: calm (initial); attention 0
+    ranking: stalk > advance > reload > evade > engage > investigate; incumbent: advance; selected: stalk (rank 1); target: contact-41
+    tells: none
+  ticks 2..20 (19 ticks)
+    affect: calm (unchanged); attention 0
+    ranking: stalk > advance > reload > evade > engage > investigate; incumbent: stalk; selected: stalk (rank 1); target: contact-41
+    tells: none
+  ticks 21..21 (1 tick)
+    affect: calm (unchanged); attention 0
+    ranking: advance > reload > evade > engage > investigate; incumbent: stalk; selected: advance (rank 1); target: contact-41
+    tells: caught
+  ticks 22..22 (1 tick)
+    affect: calm (unchanged); attention 0
+    ranking: advance > reload > evade > engage > investigate; incumbent: stalk; selected: advance (rank 1); target: contact-41
+    tells: none
+  ticks 23..111 (89 ticks)
+    affect: calm (unchanged); attention 0
+    ranking: advance > reload > evade > engage > investigate; incumbent: advance; selected: advance (rank 1); target: contact-41
+    tells: none
+  ticks 112..112 (1 tick)
+    affect: calm (unchanged); attention 0
+    ranking: stalk > advance > reload > evade > engage > investigate; incumbent: advance; selected: stalk (rank 1); target: contact-41
+    tells: none
+  ticks 113..200 (88 ticks)
+    affect: calm (unchanged); attention 0
+    ranking: stalk > advance > reload > evade > engage > investigate; incumbent: stalk; selected: stalk (rank 1); target: contact-41
+    tells: none
+
+model 1: guard-0 models contact-41: "guard-0 in room-0" (rejected 0..0: says it does not hold) [tested]
+  lifetime: from tick 1 until tick 21
+  caused by: #1 observation@1
+  world: in world truth (a separate fact; a model is never compared with it)
+  compared with contact-41's own beliefs about it:
+    belief 2: certain (holds) ticks 21..21; agrees-with-world
+    belief 4: unknown (does not hold) ticks 22..; no-claim
+  ticks 1..20: agrees
+
+model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: says it holds) [tested]
+  lifetime: from tick 21 until tick 112; supersedes belief 1
+  caused by: #2 observation@21
+  world: in world truth (a separate fact; a model is never compared with it)
+  compared with contact-41's own beliefs about it:
+    belief 2: certain (holds) ticks 21..21; agrees-with-world
+    belief 4: unknown (does not hold) ticks 22..; no-claim
+  ticks 21..21: agrees
+  ticks 22..111: diverges
+  stale-divergent: right when stated, wrong from tick 22 without being restated [tested]
+
+model 5: guard-0 models contact-41: "guard-0 in room-0" (rejected 0..0: says it does not hold) [tested]
+  lifetime: from tick 112 (not superseded); supersedes belief 3
+  caused by: #5 observation@112
+  world: in world truth (a separate fact; a model is never compared with it)
+  compared with contact-41's own beliefs about it:
+    belief 2: certain (holds) ticks 21..21; agrees-with-world
+    belief 4: unknown (does not hold) ticks 22..; no-claim
+  ticks 112..: agrees

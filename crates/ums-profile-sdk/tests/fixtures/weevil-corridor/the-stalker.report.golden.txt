@@ -1,0 +1,50 @@
+explain report ums-explain/2
+inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
+package profile: idaptik/weevil-corridor 1.0
+mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.2
+leak-verdict: unverified (no counterfactual seam)
+beliefs: 1; agrees-with-world: 1; diverges-from-world: 0; no-claim: 0
+models: 2; stale-divergent: 0; refused: 0
+
+agent contact-41: commitment-override ticks: 0 of 0 [tested]
+  beliefs: 1; agrees-with-world: 1; diverges-from-world: 0; no-claim: 0
+  belief 2: "guard-0 in room-0" (certain 10000..10000); in world truth -> agrees-with-world [tested]
+
+agent guard-0: commitment-override ticks: 0 of 200 [tested]
+  beliefs: 0; agrees-with-world: 0; diverges-from-world: 0; no-claim: 0
+  ticks 1..1 (1 tick)
+    affect: calm (initial); attention 0
+    ranking: stalk > advance > reload > evade > engage > investigate; incumbent: advance; selected: stalk (rank 1); target: contact-41
+    tells: none
+  ticks 2..128 (127 ticks)
+    affect: calm (unchanged); attention 0
+    ranking: stalk > advance > reload > evade > engage > investigate; incumbent: stalk; selected: stalk (rank 1); target: contact-41
+    tells: none
+  ticks 129..160 (32 ticks)
+    affect: calm (unchanged); attention 0
+    ranking: stalk > engage > advance > reload > evade > investigate; incumbent: stalk; selected: stalk (rank 1); target: contact-41
+    tells: none
+  ticks 161..161 (1 tick)
+    affect: calm (unchanged); attention 0
+    ranking: engage > advance > reload > evade > investigate > stalk; incumbent: stalk; selected: engage (rank 1); target: contact-41
+    tells: none
+  ticks 162..200 (39 ticks)
+    affect: calm (unchanged); attention 0
+    ranking: engage > advance > reload > evade > investigate; incumbent: engage; selected: engage (rank 1); target: contact-41
+    tells: none
+
+model 1: guard-0 models contact-41: "guard-0 in room-0" (rejected 0..0: says it does not hold) [tested]
+  lifetime: from tick 1 until tick 161
+  caused by: #1 observation@1
+  world: in world truth (a separate fact; a model is never compared with it)
+  compared with contact-41's own beliefs about it:
+    belief 2: certain (holds) ticks 161..; agrees-with-world
+  ticks 1..160: agrees
+
+model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: says it holds) [tested]
+  lifetime: from tick 161 (not superseded); supersedes belief 1
+  caused by: #2 action_outcome@161
+  world: in world truth (a separate fact; a model is never compared with it)
+  compared with contact-41's own beliefs about it:
+    belief 2: certain (holds) ticks 161..; agrees-with-world
+  ticks 161..: agrees
