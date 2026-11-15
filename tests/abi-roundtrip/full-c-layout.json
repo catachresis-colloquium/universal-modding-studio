@@ -8,7 +8,7 @@
     { "name": "vault", "security_tier": 4 }
   ],
   "guards": [
-    { "world_x": 20.5, "zone": "lobby", "rank": "chief", "patrol_radius": 12.25 }
+    { "world_x": 20.5, "zone": "lobby", "rank": "security_chief", "patrol_radius": 12.25 }
   ],
   "dogs": [
     { "world_x": 24.0, "breed": "bloodhound", "patrol_radius": 9.5 }
