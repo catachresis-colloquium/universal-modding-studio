@@ -3,14 +3,12 @@ inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
 package profile: idaptik/weevil-corridor 1.0
 mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.2
 leak-verdict: unverified (no counterfactual seam)
-beliefs: 3; agrees-with-world: 2; diverges-from-world: 0; no-claim: 1
-models: 2; stale-divergent: 1; refused: 0
+beliefs: 1; agrees-with-world: 1; diverges-from-world: 0; no-claim: 0
+models: 2; stale-divergent: 0; refused: 0
 
 agent contact-41: commitment-override ticks: 0 of 0 [tested]
-  beliefs: 3; agrees-with-world: 2; diverges-from-world: 0; no-claim: 1
+  beliefs: 1; agrees-with-world: 1; diverges-from-world: 0; no-claim: 0
   belief 2: "guard-0 in room-0" (certain 10000..10000); in world truth -> agrees-with-world [tested]
-  belief 4: "guard-0 in room-0" (unknown 0..10000); in world truth -> no-claim [tested]
-  belief 5: "guard-0 in room-0" (certain 10000..10000); in world truth -> agrees-with-world [tested]
 
 agent guard-0: commitment-override ticks: 0 of 200 [tested]
   tells at: caught@101
@@ -49,9 +47,7 @@ model 1: guard-0 models contact-41: "guard-0 in room-0" (rejected 0..0: says it 
   caused by: #1 observation@1
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:
-    belief 2: certain (holds) ticks 101..101; agrees-with-world
-    belief 4: unknown (does not hold) ticks 102..115; no-claim
-    belief 5: certain (holds) ticks 116..; agrees-with-world
+    belief 2: certain (holds) ticks 101..; agrees-with-world
   ticks 1..100: agrees
 
 model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: says it holds) [tested]
@@ -59,10 +55,5 @@ model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: s
   caused by: #2 observation@101
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:
-    belief 2: certain (holds) ticks 101..101; agrees-with-world
-    belief 4: unknown (does not hold) ticks 102..115; no-claim
-    belief 5: certain (holds) ticks 116..; agrees-with-world
-  ticks 101..101: agrees
-  ticks 102..115: diverges
-  ticks 116..: agrees
-  stale-divergent: right when stated, wrong from tick 102 without being restated [tested]
+    belief 2: certain (holds) ticks 101..; agrees-with-world
+  ticks 101..: agrees

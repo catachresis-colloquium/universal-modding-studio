@@ -26,8 +26,10 @@
 //! under the depth-1 policies `vendor/idaptik/enaction-policies-models.json`;
 //! under the depth-0 file the real validator must refuse them as
 //! `nesting-bounded`. Their figures are those of the vendored documents
-//! (IDApTIK 462af7c) and have NOT been measured on the real chain by this
-//! package: the tests below are written, not run.
+//! (IDApTIK 802b009, where each contact remembers for 30 ticks). The
+//! coordinator ran all 8 tests on 2026-11-15 against IDApTIK 462af7c; the
+//! figures for caught and false-exposure changed with 802b009 and have not
+//! been run on the real chain by this package.
 
 mod support;
 
@@ -346,7 +348,7 @@ fn a_tampered_runner_output_is_refused_by_the_real_validator_with_the_digest_rul
 fn expected_models(profile: &str) -> (u64, u64) {
     match profile {
         "the-stalker" => (2, 0),
-        "caught" => (2, 1),
+        "caught" => (2, 0),
         "false-exposure" => (3, 1),
         "the-stalker-control" | "caught-control" | "false-exposure-control" => (0, 0),
         other => panic!("not a model scenario: {other}"),
@@ -408,8 +410,8 @@ fn a_model_scenario_is_refused_as_nesting_bounded_under_the_depth_0_policies() {
 }
 
 /// The designer's command for false-exposure, against its golden report:
-/// the guard's model agrees at tick 21 and diverges from tick 22, marked
-/// stale-divergent.
+/// the guard's model agrees on ticks 21 to 51 and diverges from tick 52,
+/// marked stale-divergent.
 #[test]
 #[ignore = "needs the real enaction-validate and idaptik-weevil-replay (ENACTION_VALIDATE, IDAPTIK_WEEVIL_REPLAY)"]
 fn the_false_exposure_cli_preview_matches_its_golden_report() {
@@ -424,7 +426,7 @@ fn the_false_exposure_cli_preview_matches_its_golden_report() {
         golden.replacen("(not-validated)", "(validator-accepted)", 1)
     );
     assert!(
-        stdout.contains("  stale-divergent: right when stated, wrong from tick 22 without being restated [tested]\n"),
+        stdout.contains("  stale-divergent: right when stated, wrong from tick 52 without being restated [tested]\n"),
         "{stdout}"
     );
     assert_eq!(
