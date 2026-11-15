@@ -193,7 +193,7 @@ The rule says "holds" or "does not hold" and compares no intervals: a
 rule a model that goes wrong and then right again (IDApTIK's `caught`, ticks
 102 to 115) is also stale-divergent.
 
-The report is canonical JSON (`ums-explain/2`, RFC 8785 for integer-only
+The report is canonical JSON (`ums-explain/3`, RFC 8785 for integer-only
 documents) plus a plain-text rendering, pinned by golden files in
 `crates/ums-profile-sdk/tests/fixtures/explain` (stub documents in the real
 shapes) and `crates/ums-profile-sdk/tests/fixtures/weevil-corridor` (real
@@ -201,6 +201,26 @@ runner documents, one per corridor scenario, including the six slice 2
 model scenarios). Each derived row carries a guarantee level; every row is
 `tested` today. Before the models section, a nested belief was compared with
 the world and marked `designed`; it is now a model.
+
+=== Report versions
+
+The report names its version in `report` (JSON) and on its first line
+(text). The rule, set by the owner on 2026-11-15:
+
+* an *added* member or line keeps the tag. A reader that ignores members
+  it does not know reads the report as before;
+* a *changed meaning* of an existing member or line bumps the tag: a field
+  that is computed differently, a count that includes or excludes other
+  items, a renamed or removed member.
+
+History:
+
+* `ums-explain/2` (#107): the real document shapes, the closed-world
+  comparison, belief summaries, override and tell ticks.
+* `ums-explain/3` (#113, tag bumped afterwards): models. `models` and
+  `model_summary` were added, which alone would keep the tag; but a nested
+  belief left the world comparison and the per-agent and overall belief
+  counts, which changed their meaning.
 
 The vendored Enaction corpus (`vendor/enaction/conformance/mind/v1`) checks
 the lens against the owner's fixtures: for `the-grudge` it reports exactly
