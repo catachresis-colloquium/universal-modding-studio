@@ -213,8 +213,10 @@ SPDX-License-Identifier = "AGPL-3.0-or-later"
 
 # The provenance records beside the vendored copies are written here, not
 # upstream. Listed after the vendor globs because the last match applies.
+# `**` because in REUSE globs `*` does not cross `/`, and a record can sit
+# deeper (vendor/enaction/conformance/tom/PROVENANCE.json, #113).
 [[annotations]]
-path = "vendor/*/PROVENANCE.json"
+path = "vendor/**/PROVENANCE.json"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
