@@ -250,6 +250,7 @@ fn there_is_no_no_world_truth_verdict() {
 
 #[test]
 fn belief_counts_are_summarised_per_agent_and_overall() {
+    // Order-0 beliefs only: belief 6 is a model and is counted in models.
     let report = report("mind-trace.json");
     assert_eq!(
         agent(&report, "agent-a")["belief_summary"],
@@ -257,15 +258,23 @@ fn belief_counts_are_summarised_per_agent_and_overall() {
     );
     assert_eq!(
         agent(&report, "agent-b")["belief_summary"],
-        json!({"beliefs": 4, "agrees-with-world": 2, "diverges-from-world": 1, "no-claim": 1})
+        json!({"beliefs": 3, "agrees-with-world": 1, "diverges-from-world": 1, "no-claim": 1})
     );
     assert_eq!(
         report["belief_summary"],
-        json!({"beliefs": 7, "agrees-with-world": 3, "diverges-from-world": 3, "no-claim": 1})
+        json!({"beliefs": 6, "agrees-with-world": 2, "diverges-from-world": 3, "no-claim": 1})
+    );
+    assert_eq!(
+        report["model_summary"],
+        json!({"models": 1, "stale_divergent": 0, "refused": 0})
     );
     let text = render_text(&report);
     assert!(
-        text.contains("beliefs: 7; agrees-with-world: 3; diverges-from-world: 3; no-claim: 1"),
+        text.contains("beliefs: 6; agrees-with-world: 2; diverges-from-world: 3; no-claim: 1"),
+        "{text}"
+    );
+    assert!(
+        text.contains("models: 1; stale-divergent: 0; refused: 0"),
         "{text}"
     );
 }
@@ -285,13 +294,66 @@ fn beliefs_of_plain_bearers_are_tested() {
     }
 }
 
+fn model(report: &Value, belief_id: u64) -> Value {
+    report["models"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|model| model["belief_id"] == belief_id)
+        .expect("model")
+        .clone()
+}
+
 #[test]
-fn nested_belief_is_grouped_under_its_bearer_and_reported_as_designed_only() {
+fn a_nested_belief_is_a_model_compared_with_its_bearer_not_with_the_world() {
+    // Belief 6: agent-a's model of agent-b, "door is south", believed, from
+    // tick 14. agent-b's own belief 3 (certain, from tick 10) holds it, so
+    // the model agrees. It is not among agent-b's world-compared beliefs.
     let report = report("mind-trace.json");
-    let nested = belief(&report, "agent-b", 6);
-    assert_eq!(nested["holders"], json!(["agent-a"]));
-    assert_eq!(nested["world"], "agrees-with-world");
-    assert_eq!(nested["guarantee"]["level"], "designed");
+    let b = agent(&report, "agent-b");
+    assert!(
+        b["beliefs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|belief| belief["belief_id"] != 6),
+        "{}",
+        b["beliefs"]
+    );
+    let six = model(&report, 6);
+    assert_eq!(six["holders"], json!(["agent-a"]));
+    assert_eq!(six["bearer"], "agent-b");
+    assert_eq!(six["claim"], "holds");
+    assert_eq!(
+        six["timeline"],
+        json!([{"from_tick": 14, "last_tick": null, "verdict": "agrees"}])
+    );
+    assert_eq!(six["compared_with"]["beliefs"][0]["belief_id"], 3);
+    assert_eq!(
+        six["compared_with"]["beliefs"][0]["world"],
+        "agrees-with-world"
+    );
+    assert_eq!(six["proposition_in_world_truth"], true);
+    assert_eq!(six["stale_divergent"], false);
+    assert_eq!(six["guarantee"]["level"], "tested");
+    assert!(six.get("world").is_none(), "{six}");
+}
+
+#[test]
+fn a_model_diverges_when_its_bearer_does_not_hold_it_even_if_the_world_does() {
+    // agent-b rejects "door is south", which stays in world truth. agent-a's
+    // model that agent-b believes it is now wrong about agent-b.
+    let mut runner = fixture("runner-output.json");
+    runner["package"]["beliefs"][2]["status"] = json!("rejected");
+    let report = explain(&runner, None, false).unwrap();
+    assert_eq!(model(&report, 6)["timeline"][0]["verdict"], "diverges");
+    assert_eq!(model(&report, 6)["proposition_in_world_truth"], true);
+    let text = render_text(&report);
+    assert!(
+        text.contains("model 6: agent-a models agent-b: \"door is south\""),
+        "{text}"
+    );
+    assert!(text.contains("  ticks 14..: diverges\n"), "{text}");
 }
 
 #[test]
@@ -306,7 +368,7 @@ fn a_runner_output_alone_is_explained_without_a_mind_trace() {
     let a = agent(&report, "agent-a");
     assert_eq!(a["ticks"], 0);
     assert_eq!(a["windows"], json!([]));
-    assert_eq!(report["belief_summary"]["beliefs"], 7);
+    assert_eq!(report["belief_summary"]["beliefs"], 6);
     let text = render_text(&report);
     assert!(text.contains("+ no mind trace"), "{text}");
 }

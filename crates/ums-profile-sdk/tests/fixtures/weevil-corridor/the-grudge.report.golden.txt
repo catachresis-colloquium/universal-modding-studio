@@ -4,6 +4,7 @@ package profile: idaptik/weevil-corridor 1.0
 mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.2
 leak-verdict: unverified (no counterfactual seam)
 beliefs: 42; agrees-with-world: 0; diverges-from-world: 42; no-claim: 0
+models: 0; stale-divergent: 0; refused: 0
 
 agent guard-0: commitment-override ticks: 37 of 200 (20..56) [tested]
   tells at: fixate@10..56; hesitate@57..59; startle@20, 56

@@ -21,13 +21,29 @@
 //!   the incumbent and is not first in the ranking. The producer does not
 //!   assert it; the lens derives it. Its ticks are listed per agent;
 //! * the ticks at which each tell is shown;
-//! * the beliefs the agent bears, each compared with world truth under the
-//!   closed-world rule of CAC-KERNEL section 9: world truth lists every
-//!   stated proposition that is true, so a stated proposition absent from
-//!   it is false. A held belief (`certain`, `believed`, `suspected`) agrees
-//!   when its proposition is present and diverges when it is absent; a
-//!   `rejected` belief diverges when its proposition is present and agrees
-//!   otherwise; `unknown` makes no claim.
+//! * the order-0 beliefs the agent bears, each compared with world truth
+//!   under the closed-world rule of CAC-KERNEL section 9: world truth lists
+//!   every stated proposition that is true, so a stated proposition absent
+//!   from it is false. A held belief (`certain`, `believed`, `suspected`)
+//!   agrees when its proposition is present and diverges when it is
+//!   absent; a `rejected` belief diverges when its proposition is present
+//!   and agrees otherwise; `unknown` makes no claim.
+//!
+//! Per model (a belief of order 1 or more, `holders` not empty) the report
+//! has a row in `models`, derived by the rule of CAC-KERNEL section 9,
+//! "Models are compared with minds" (ADR-0028), and never compared with
+//! world truth: the holder path, bearer, proposition and status, the cited
+//! causes, the beliefs it is compared with (the outermost holder removed,
+//! the same bearer and proposition) with their own order-0 world verdict,
+//! whether the world holds the proposition (shown as a separate fact), and
+//! the timeline over the model's lifetime: segments of `agrees`,
+//! `diverges` or `no-claim`, and the derived mark `stale_divergent` (the
+//! first segment agrees and a later one diverges). A model whose compared
+//! belief is not unique inside its lifetime is shown as refused
+//! (`model-counterpart-unique`) with no timeline. [`model_timelines`]
+//! gives the same derivation in the shape of Enaction's
+//! `conformance/tom/v1` `expected.json`, which `tests/vendored_tom.rs`
+//! checks case by case.
 //!
 //! Every derived row carries a [`GuaranteeLevel`]: `tested` where a test in
 //! `tests/explain_golden.rs` covers the derivation, `designed` otherwise.
@@ -54,6 +70,7 @@ pub const RUNNER_OUTPUT_CONTRACT: &str = "enaction-runner-output/1";
 pub const LEAK_VERDICT: &str = "unverified (no counterfactual seam)";
 
 const EVIDENCE: &str = "crates/ums-profile-sdk/tests/explain_golden.rs";
+const MODEL_EVIDENCE: &str = "crates/ums-profile-sdk/tests/vendored_tom.rs";
 const AGREES: &str = "agrees-with-world";
 const DIVERGES: &str = "diverges-from-world";
 const NO_CLAIM: &str = "no-claim";
@@ -62,6 +79,7 @@ const NO_CLAIM: &str = "no-claim";
 pub struct ExplainError {
     rule: &'static str,
     detail: String,
+    path: Option<String>,
 }
 
 impl ExplainError {
@@ -69,12 +87,18 @@ impl ExplainError {
         Self {
             rule,
             detail: detail.into(),
+            path: None,
         }
     }
 
     /// Stable rule name of the refusal.
     pub fn rule(&self) -> &'static str {
         self.rule
+    }
+
+    /// Field path of the refusal, where the rule names one.
+    pub fn path(&self) -> Option<&str> {
+        self.path.as_deref()
     }
 }
 
@@ -210,6 +234,12 @@ enum Status {
 }
 
 impl Status {
+    /// A belief holds its proposition when it is certain, believed or
+    /// suspected (CAC-KERNEL section 9).
+    fn holds(self) -> bool {
+        matches!(self, Self::Certain | Self::Believed | Self::Suspected)
+    }
+
     fn name(self) -> &'static str {
         match self {
             Self::Certain => "certain",
@@ -251,18 +281,7 @@ pub fn explain(
     mind_trace: Option<&Value>,
     validated: bool,
 ) -> Result<Value, ExplainError> {
-    canonical::check_integers(runner_output)?;
-    let envelope: Envelope = serde_json::from_value(runner_output.clone())
-        .map_err(|error| ExplainError::new("MalformedRunnerOutput", error.to_string()))?;
-    if envelope.contract != RUNNER_OUTPUT_CONTRACT {
-        return Err(ExplainError::new(
-            "WrongContract",
-            format!(
-                "expected {RUNNER_OUTPUT_CONTRACT}, found {}",
-                envelope.contract
-            ),
-        ));
-    }
+    let envelope = read_envelope(runner_output)?;
     let trace = match mind_trace {
         None => None,
         Some(document) => {
@@ -288,7 +307,14 @@ pub fn explain(
             .push_tick(record, &world)?;
     }
     let mut overall = Summary::default();
-    for belief in &envelope.package.beliefs {
+    // World truth applies to order 0 only (CAC-KERNEL section 9). A model
+    // is reported in `models`, compared with a mind, never here.
+    for belief in envelope
+        .package
+        .beliefs
+        .iter()
+        .filter(|b| b.holders.is_empty())
+    {
         let row = world.belief_row(belief);
         overall.count(&row);
         let rows = agents.entry(belief.bearer.clone()).or_default();
@@ -299,6 +325,12 @@ pub fn explain(
     let agents: Vec<Value> = agents
         .into_iter()
         .map(|(agent, rows)| rows.finish(agent))
+        .collect();
+    let ledger = Ledger::new(&envelope.package.beliefs);
+    let models: Vec<Value> = ledger
+        .models()
+        .into_iter()
+        .map(|model| ledger.model_row(model, &world))
         .collect();
     let manifest_profile = &envelope.package.manifest["profile"];
     let package_profile = json!({
@@ -322,7 +354,358 @@ pub fn explain(
         "leak_verdict": LEAK_VERDICT,
         "belief_summary": overall.to_value(),
         "agents": agents,
+        "model_summary": model_summary(&models),
+        "models": models,
     }))
+}
+
+fn read_envelope(runner_output: &Value) -> Result<Envelope, ExplainError> {
+    canonical::check_integers(runner_output)?;
+    let envelope: Envelope = serde_json::from_value(runner_output.clone())
+        .map_err(|error| ExplainError::new("MalformedRunnerOutput", error.to_string()))?;
+    if envelope.contract != RUNNER_OUTPUT_CONTRACT {
+        return Err(ExplainError::new(
+            "WrongContract",
+            format!(
+                "expected {RUNNER_OUTPUT_CONTRACT}, found {}",
+                envelope.contract
+            ),
+        ));
+    }
+    Ok(envelope)
+}
+
+/// Refuse a package that holds a belief of a higher order than the
+/// caller's depth policy allows (`depth.max_order` of an
+/// `enaction-policies/1` document), with the validator's rule name
+/// `nesting-bounded` and the path `package.beliefs[belief_id=N].holders`
+/// of the first such belief in document order.
+///
+/// The validator applies this rule in a preview; the lens repeats it so
+/// that a reader of a vendored corpus can refuse what the corpus refuses
+/// without running Enaction code.
+pub fn check_depth(runner_output: &Value, policies: &Value) -> Result<(), ExplainError> {
+    if policies["contract"] != "enaction-policies/1" {
+        return Err(ExplainError::new(
+            "MalformedPolicies",
+            "the policies document is not enaction-policies/1",
+        ));
+    }
+    let max_order = policies["depth"]["max_order"].as_u64().ok_or_else(|| {
+        ExplainError::new(
+            "MalformedPolicies",
+            "the policies document has no integer depth.max_order",
+        )
+    })?;
+    let envelope = read_envelope(runner_output)?;
+    for belief in &envelope.package.beliefs {
+        let order = belief.holders.len() as u64;
+        if order > max_order {
+            let mut error = ExplainError::new(
+                "nesting-bounded",
+                format!(
+                    "belief {} has order {order}, above the declared depth.max_order {max_order}",
+                    belief.belief_id
+                ),
+            );
+            error.path = Some(format!(
+                "package.beliefs[belief_id={}].holders",
+                belief.belief_id
+            ));
+            return Err(error);
+        }
+    }
+    Ok(())
+}
+
+/// Every model of the package (a belief of order 1 or more), in belief-id
+/// order, with its timeline, its `until` when it is superseded, and
+/// whether it is stale-divergent: the shape of `expected.json` in
+/// Enaction's `conformance/tom/v1`. Derived from the package alone, by the
+/// rule of CAC-KERNEL section 9, "Models are compared with minds"; world
+/// truth is not read.
+///
+/// A model whose compared belief is not unique at some tick of its
+/// lifetime refuses the derivation with `model-counterpart-unique`. The
+/// report ([`explain`]) shows such a model as refused instead.
+pub fn model_timelines(runner_output: &Value) -> Result<Value, ExplainError> {
+    let envelope = read_envelope(runner_output)?;
+    let ledger = Ledger::new(&envelope.package.beliefs);
+    let mut out = Vec::new();
+    for model in ledger.models() {
+        let derived = ledger.derive(model);
+        let timeline = derived.timeline.map_err(|tick| {
+            let mut error = ExplainError::new(
+                "model-counterpart-unique",
+                format!(
+                    "belief {}: more than one compared belief holds at tick {tick}",
+                    model.belief_id
+                ),
+            );
+            error.path = Some(format!("package.beliefs[belief_id={}]", model.belief_id));
+            error
+        })?;
+        let mut row = Map::new();
+        row.insert("belief_id".into(), json!(model.belief_id));
+        row.insert(
+            "timeline".into(),
+            Value::Array(
+                timeline
+                    .iter()
+                    .map(|(from, verdict)| json!({"from_tick": from, "verdict": verdict.name()}))
+                    .collect(),
+            ),
+        );
+        if let Some(until) = derived.until {
+            row.insert("until".into(), json!(until));
+        }
+        row.insert("stale_divergent".into(), json!(stale_divergent(&timeline)));
+        out.push(Value::Object(row));
+    }
+    Ok(json!({"models": out}))
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Verdict {
+    Agrees,
+    Diverges,
+    NoClaim,
+}
+
+impl Verdict {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Agrees => "agrees",
+            Self::Diverges => "diverges",
+            Self::NoClaim => "no-claim",
+        }
+    }
+}
+
+/// First segment agrees and a later one diverges (CAC-KERNEL section 9).
+fn stale_divergent(timeline: &[(u64, Verdict)]) -> bool {
+    matches!(timeline.first(), Some((_, Verdict::Agrees)))
+        && timeline
+            .iter()
+            .skip(1)
+            .any(|(_, verdict)| *verdict == Verdict::Diverges)
+}
+
+struct Derived {
+    until: Option<u64>,
+    /// The segments, or the first tick where more than one compared belief
+    /// holds.
+    timeline: Result<Vec<(u64, Verdict)>, u64>,
+}
+
+/// The beliefs of one package with the tick at which each is ended by a
+/// belief that names it in `supersedes`.
+struct Ledger<'a> {
+    beliefs: &'a [Belief],
+    ended_at: BTreeMap<u64, u64>,
+}
+
+impl<'a> Ledger<'a> {
+    fn new(beliefs: &'a [Belief]) -> Self {
+        let mut ended_at: BTreeMap<u64, u64> = BTreeMap::new();
+        for belief in beliefs {
+            if let Some(ended) = belief.supersedes {
+                let tick = ended_at.entry(ended).or_insert(belief.valid_from);
+                *tick = (*tick).min(belief.valid_from);
+            }
+        }
+        Self { beliefs, ended_at }
+    }
+
+    fn models(&self) -> Vec<&'a Belief> {
+        let mut models: Vec<&Belief> = self
+            .beliefs
+            .iter()
+            .filter(|belief| !belief.holders.is_empty())
+            .collect();
+        models.sort_by_key(|belief| belief.belief_id);
+        models
+    }
+
+    fn until(&self, belief: &Belief) -> Option<u64> {
+        self.ended_at.get(&belief.belief_id).copied()
+    }
+
+    /// Holding at tick `t`: started by `t` and not ended by `t`.
+    fn holds_at(&self, belief: &Belief, tick: u64) -> bool {
+        belief.valid_from <= tick && self.until(belief).is_none_or(|end| end > tick)
+    }
+
+    /// Beliefs of the compared kind: the outermost holder removed, the same
+    /// bearer and proposition.
+    fn compared(&self, model: &Belief) -> Vec<&'a Belief> {
+        let path = &model.holders[1..];
+        let mut out: Vec<&Belief> = self
+            .beliefs
+            .iter()
+            .filter(|belief| {
+                belief.holders == path
+                    && belief.bearer == model.bearer
+                    && belief.proposition == model.proposition
+            })
+            .collect();
+        out.sort_by_key(|belief| belief.belief_id);
+        out
+    }
+
+    fn derive(&self, model: &Belief) -> Derived {
+        let start = model.valid_from;
+        let until = self.until(model);
+        if model.status == Status::Unknown {
+            return Derived {
+                until,
+                timeline: Ok(vec![(start, Verdict::NoClaim)]),
+            };
+        }
+        // A successor that starts no later than the model leaves one tick.
+        let end = until.map(|until| until.max(start + 1));
+        let compared = self.compared(model);
+        let mut ticks: BTreeSet<u64> = BTreeSet::from([start]);
+        for belief in &compared {
+            ticks.insert(belief.valid_from);
+            if let Some(ended) = self.until(belief) {
+                ticks.insert(ended);
+            }
+        }
+        let claim = model.status.holds();
+        let mut timeline: Vec<(u64, Verdict)> = Vec::new();
+        for tick in ticks
+            .into_iter()
+            .filter(|tick| *tick >= start && end.is_none_or(|end| *tick < end))
+        {
+            let holding: Vec<&&Belief> = compared
+                .iter()
+                .filter(|belief| self.holds_at(belief, tick))
+                .collect();
+            if holding.len() > 1 {
+                return Derived {
+                    until,
+                    timeline: Err(tick),
+                };
+            }
+            let held = holding.first().is_some_and(|belief| belief.status.holds());
+            let verdict = if claim == held {
+                Verdict::Agrees
+            } else {
+                Verdict::Diverges
+            };
+            if timeline.last().map(|(_, last)| *last) != Some(verdict) {
+                timeline.push((tick, verdict));
+            }
+        }
+        Derived {
+            until,
+            timeline: Ok(timeline),
+        }
+    }
+
+    /// The report row of one model: who models whom about what, the
+    /// model's cited causes, the beliefs it is compared with (with their
+    /// own world comparison where they are of order 0), the world's truth
+    /// value of the proposition as a separate fact, and the timeline.
+    fn model_row(&self, model: &Belief, world: &World) -> Value {
+        let derived = self.derive(model);
+        let segment_end = |index: usize, timeline: &[(u64, Verdict)]| -> Option<u64> {
+            match timeline.get(index + 1) {
+                Some((next, _)) => Some(next - 1),
+                None => derived
+                    .until
+                    .map(|until| until.max(model.valid_from + 1) - 1),
+            }
+        };
+        let (timeline, refused, stale) = match &derived.timeline {
+            Ok(timeline) => (
+                timeline
+                    .iter()
+                    .enumerate()
+                    .map(|(index, (from, verdict))| {
+                        json!({
+                            "from_tick": from,
+                            "last_tick": segment_end(index, timeline),
+                            "verdict": verdict.name(),
+                        })
+                    })
+                    .collect::<Vec<_>>(),
+                Value::Null,
+                stale_divergent(timeline),
+            ),
+            Err(tick) => (
+                Vec::new(),
+                json!({"rule": "model-counterpart-unique", "tick": tick}),
+                false,
+            ),
+        };
+        let compared: Vec<Value> = self
+            .compared(model)
+            .into_iter()
+            .map(|belief| {
+                let in_world_truth = world.truth.contains(belief.proposition.as_str());
+                json!({
+                    "belief_id": belief.belief_id,
+                    "status": belief.status.name(),
+                    "holds": belief.status.holds(),
+                    "valid_from": belief.valid_from,
+                    "until": self.until(belief),
+                    "supersedes": belief.supersedes,
+                    "world": if belief.holders.is_empty() {
+                        json!(belief.status.world(in_world_truth))
+                    } else {
+                        Value::Null
+                    },
+                })
+            })
+            .collect();
+        let claim = match model.status {
+            Status::Unknown => NO_CLAIM,
+            status if status.holds() => "holds",
+            _ => "does-not-hold",
+        };
+        json!({
+            "belief_id": model.belief_id,
+            "holders": model.holders,
+            "bearer": model.bearer,
+            "order": model.holders.len(),
+            "proposition": model.proposition,
+            "status": model.status.name(),
+            "claim": claim,
+            "confidence": {
+                "belief": model.confidence.belief,
+                "plausibility": model.confidence.plausibility,
+            },
+            "valid_from": model.valid_from,
+            "until": derived.until,
+            "supersedes": model.supersedes,
+            "caused_by": model
+                .source_events
+                .iter()
+                .map(|id| world.cause(*id))
+                .collect::<Vec<_>>(),
+            "compared_with": {
+                "holders": &model.holders[1..],
+                "bearer": model.bearer,
+                "beliefs": compared,
+            },
+            "proposition_in_world_truth": world.truth.contains(model.proposition.as_str()),
+            "timeline": timeline,
+            "stale_divergent": stale,
+            "refused": refused,
+            "guarantee": guarantee(GuaranteeLevel::Tested, MODEL_EVIDENCE),
+        })
+    }
+}
+
+fn model_summary(models: &[Value]) -> Value {
+    let count = |pick: fn(&Value) -> bool| models.iter().filter(|model| pick(model)).count();
+    json!({
+        "models": models.len(),
+        "stale_divergent": count(|model| model["stale_divergent"] == true),
+        "refused": count(|model| !model["refused"].is_null()),
+    })
 }
 
 struct World<'a> {
@@ -365,14 +748,8 @@ impl<'a> World<'a> {
 
     fn belief_row(&self, belief: &Belief) -> Value {
         let in_world_truth = self.truth.contains(belief.proposition.as_str());
-        let level = if belief.holders.is_empty() {
-            guarantee(GuaranteeLevel::Tested, EVIDENCE)
-        } else {
-            guarantee(
-                GuaranteeLevel::Designed,
-                "nested belief (holders is not empty): the closed-world comparison is applied to its proposition, but no test covers the semantics of comparing a modelled belief with the world",
-            )
-        };
+        // Only order-0 beliefs reach this comparison; models are in `models`.
+        let level = guarantee(GuaranteeLevel::Tested, EVIDENCE);
         json!({
             "belief_id": belief.belief_id,
             "bearer": belief.bearer,
@@ -641,6 +1018,12 @@ pub fn render_text(report: &Value) -> String {
     }
     let _ = writeln!(out, "leak-verdict: {}", text(&report["leak_verdict"]));
     let _ = writeln!(out, "{}", summary_line(&report["belief_summary"]));
+    let models = &report["model_summary"];
+    let _ = writeln!(
+        out,
+        "models: {}; stale-divergent: {}; refused: {}",
+        models["models"], models["stale_divergent"], models["refused"]
+    );
     for agent in report["agents"].as_array().into_iter().flatten() {
         let _ = writeln!(out);
         let overrides = tick_ranges(&agent["commitment_override_at"]);
@@ -695,7 +1078,172 @@ pub fn render_text(report: &Value) -> String {
             );
         }
     }
+    for model in report["models"].as_array().into_iter().flatten() {
+        let _ = writeln!(out);
+        render_model(&mut out, model);
+    }
     out
+}
+
+/// `21..111` for a closed range, `112..` for one that runs to the end of
+/// the package.
+fn span(first: &Value, last: &Value) -> String {
+    if last.is_null() {
+        format!("{}..", text(first))
+    } else {
+        format!("{}..{}", text(first), text(last))
+    }
+}
+
+fn whose(holders: &Value, bearer: &Value) -> String {
+    let holders = words(holders, " > ");
+    if holders.is_empty() {
+        format!("{}'s own beliefs", text(bearer))
+    } else {
+        format!("{}'s beliefs as modelled by {holders}", text(bearer))
+    }
+}
+
+fn render_model(out: &mut String, model: &Value) {
+    let claim = match model["claim"].as_str() {
+        Some("holds") => "says it holds".to_owned(),
+        Some("does-not-hold") => "says it does not hold".to_owned(),
+        _ => "makes no claim".to_owned(),
+    };
+    let _ = writeln!(
+        out,
+        "model {}: {} models {}: {:?} ({} {}..{}: {}) [{}]",
+        text(&model["belief_id"]),
+        words(&model["holders"], " > "),
+        text(&model["bearer"]),
+        text(&model["proposition"]),
+        text(&model["status"]),
+        model["confidence"]["belief"],
+        model["confidence"]["plausibility"],
+        claim,
+        level(model)
+    );
+    let mut lifetime = if model["until"].is_null() {
+        format!("from tick {} (not superseded)", text(&model["valid_from"]))
+    } else {
+        format!(
+            "from tick {} until tick {}",
+            text(&model["valid_from"]),
+            text(&model["until"])
+        )
+    };
+    if !model["supersedes"].is_null() {
+        let _ = write!(
+            lifetime,
+            "; supersedes belief {}",
+            text(&model["supersedes"])
+        );
+    }
+    let _ = writeln!(out, "  lifetime: {lifetime}");
+    let causes: Vec<String> = model["caused_by"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|cause| {
+            if cause["resolved"] == true {
+                format!(
+                    "#{} {}@{}",
+                    cause["id"],
+                    text(&cause["kind"]),
+                    text(&cause["tick"])
+                )
+            } else {
+                format!("#{} unresolved", cause["id"])
+            }
+        })
+        .collect();
+    let _ = writeln!(
+        out,
+        "  caused by: {}",
+        if causes.is_empty() {
+            "none".to_owned()
+        } else {
+            causes.join(", ")
+        }
+    );
+    let _ = writeln!(
+        out,
+        "  world: {} world truth (a separate fact; a model is never compared with it)",
+        if model["proposition_in_world_truth"] == true {
+            "in"
+        } else {
+            "absent from"
+        }
+    );
+    let compared = &model["compared_with"];
+    let _ = writeln!(
+        out,
+        "  compared with {} about it:",
+        whose(&compared["holders"], &compared["bearer"])
+    );
+    let beliefs = compared["beliefs"].as_array().cloned().unwrap_or_default();
+    if beliefs.is_empty() {
+        let _ = writeln!(
+            out,
+            "    none stated: {} does not hold it at any tick",
+            text(&compared["bearer"])
+        );
+    }
+    for belief in &beliefs {
+        let last = match belief["until"].as_u64() {
+            Some(until) => json!(until.max(belief["valid_from"].as_u64().unwrap_or(0) + 1) - 1),
+            None => Value::Null,
+        };
+        let world = if belief["world"].is_null() {
+            String::new()
+        } else {
+            format!("; {}", text(&belief["world"]))
+        };
+        let _ = writeln!(
+            out,
+            "    belief {}: {} ({}) ticks {}{}",
+            text(&belief["belief_id"]),
+            text(&belief["status"]),
+            if belief["holds"] == true {
+                "holds"
+            } else {
+                "does not hold"
+            },
+            span(&belief["valid_from"], &last),
+            world
+        );
+    }
+    if !model["refused"].is_null() {
+        let _ = writeln!(
+            out,
+            "  refused: {} at tick {} (more than one compared belief holds; none is chosen)",
+            text(&model["refused"]["rule"]),
+            text(&model["refused"]["tick"])
+        );
+        return;
+    }
+    for segment in model["timeline"].as_array().into_iter().flatten() {
+        let _ = writeln!(
+            out,
+            "  ticks {}: {}",
+            span(&segment["from_tick"], &segment["last_tick"]),
+            text(&segment["verdict"])
+        );
+    }
+    if model["stale_divergent"] == true {
+        let first_diverging = model["timeline"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|segment| segment["verdict"] == "diverges")
+            .map(|segment| text(&segment["from_tick"]))
+            .unwrap_or_default();
+        let _ = writeln!(
+            out,
+            "  stale-divergent: right when stated, wrong from tick {first_diverging} without being restated [{}]",
+            level(model)
+        );
+    }
 }
 
 fn render_window(out: &mut String, window: &Value) {
