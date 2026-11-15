@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 //! Enaction's mind-trace conformance corpus, vendored by digest
 //! (CAC-KERNEL section 6: fixtures are the cross-repository currency, and
 //! consumers vendor them against a recorded digest).

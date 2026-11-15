@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 {
   name: "Semantic Audit Gate (not implemented: fails closed)",
   description: "Placeholder for a semantic audit of descriptiles, contractiles, bot_directives, anchors and CLAUDE.md. No audit is implemented, so this action fails rather than reporting a pass it has not earned.",
