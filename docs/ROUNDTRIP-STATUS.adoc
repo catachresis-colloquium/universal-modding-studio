@@ -3,33 +3,34 @@
 
 = Round-trip status
 
-Last assessed: 2026-11-14.
+Last assessed: 2026-11-15. Source commit: `87ffbcf` (UMS `main`).
 
-[IMPORTANT]
-.STALE: the "tested" and "CI-gated" claims below no longer hold
+[NOTE]
+.2026-11-15: the IDApTIK round trip runs again
 ====
-Checked 2026-11-14 against IDApTIK `44d142d`
-(`44d142d426da5fd85828b9ebc4fb8079dad42efb`, the head of its default branch):
+`just roundtrip-idaptik` passed on 2026-11-15 at UMS `87ffbcf` against
+IDApTIK `58d6936` (`58d6936f02fbfb13477ee5ff520d06fc4e21e7ba`, the head of its
+default branch). It printed:
 
-* `git ls-files` in IDApTIK lists no file whose name matches
-  `package-runner`, and the repository has no `examples/` directory;
-* `cargo run --locked -p idaptik-core --example package-runner` in that
-  checkout prints
-  `error: no example target named `package-runner` in `idaptik-core` package`.
+....
+roundtrip-idaptik: UMS artifact accepted, executed, snapshotted, restored and replayed identically
+....
 
-`just roundtrip-idaptik` and the "UMS to IDApTIK round trip through the real
-game loader" step of `rust-ci.yml` both invoke that example, so neither can
-pass against the current IDApTIK. The same failure is recorded in
-`profiles/idaptik/v1/optimisation/verification.json`.
+IDApTIK now has `crates/idaptik-core/examples/package-runner.rs` (Enaction
+completion-plan step 6(a)). The 2026-11-14 notice is therefore retired: on
+that day IDApTIK `44d142d` had no such example, and cargo refused to run it.
 
-*Current status: designed, not tested.* The compile half (validation and
-byte-identical repeat compilation) still runs; the loader half has no loader
-to call. The six-line runner that restores it is Enaction completion-plan
-step 6(a), an owner-gated IDApTIK change. The history below is kept as the
-record of what was observed on 2026-07-27; it does not describe the present.
+`rust-ci.yml` checks out `metadatastician/IDApTIK`. On 2026-11-15
+`git ls-remote` gave the same head, `58d6936`, for that name and for
+`catachresis-colloquium/IDApTIK`.
+
+*Current status: tested locally on 2026-11-15.* The CI step
+"UMS to IDApTIK round trip through the real game loader" is expected to pass
+at the same IDApTIK head. That is *OPEN*: no CI run at that head has been
+observed.
 ====
 
-== IDApTIK: executed and gated (historical, 2026-07-27; see the notice above)
+== IDApTIK: executed and gated (record from 2026-07-27)
 
 `just roundtrip-idaptik` runs end to end. It compiles
 `profiles/idaptik/v1/ghost-lobby.ums.json` through the public
@@ -69,7 +70,7 @@ on 2026-07-27.
 checks the game out as a sibling, builds the game's own crate, and fails the
 build if the loader rejects the artifact or the replay diverges.
 
-**Status (2026-07-28, now stale): tested.** Every clause of ADR-0014 was then met -- an authored fixture
+**Status (2026-07-28; re-run locally 2026-11-15, see the note above): tested.** Every clause of ADR-0014 was then met -- an authored fixture
 is validated, compiled, loaded by the real game loader, and compared with the
 post-edit model, including deterministic repeat output.
 
@@ -102,13 +103,16 @@ repository agrees.
 == What is still not proved
 
 * Slavia has no loader round trip of any kind.
-* Enaction preview remains designed only, and is not a substitute for a loader
-  round trip.
+* The Enaction preview (ADR-0019) ran against the real runner and validator
+  by hand on 2026-11-15 (`tests/real_chain.rs`, 5 of 5 passed), but it is not
+  in CI. It is not a substitute for a loader round trip.
+* The IDApTIK loader round trip passed locally on 2026-11-15; the CI step at
+  IDApTIK `58d6936` is OPEN until a run is observed.
 
 == Next steps, in order
 
-. **Observe the gate green.** The step is written; push the branch and let it
-  run. Until then the status is gated, not tested.
+. **Observe the CI gate green at IDApTIK `58d6936` or later.** Until a CI run
+  is observed, the round trip is tested locally, not CI-gated.
 . Extend the comparison to Slavia when it grows a loader.
 . Consider comparing scenario *semantics* (not bytes) if the compiler ever
   starts synthesising scenario content rather than copying the game fixture.

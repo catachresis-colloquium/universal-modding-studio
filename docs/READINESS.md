@@ -6,8 +6,10 @@ SPDX-FileCopyrightText: 2025-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 # Universal Modding Studio Component Readiness Assessment
 
 **Standard:** [Component Readiness Grades (CRG) v2.0](https://github.com/hyperpolymath/standards/tree/main/component-readiness-grades)
-**Assessed:** 2026-07-25 (re-assessed for the profile realignment; previous
-assessment 2026-07-22)
+**Assessed:** 2026-11-15 (status upkeep, WEEVIL-HOST-ROUTE package B3), on
+**source commit `87ffbcf`** (UMS `main`). See "Gate record, 2026-11-15" below.
+Rows not re-run on that day keep their own "Last assessed" date. Previous
+assessments: 2026-07-25, 2026-07-22.
 **Assessor:** Claude (PR E of the staged lineage migration), from real local runs
 and the repo's CI workflows — evidence over intuition, no aspirational grading.
 
@@ -17,19 +19,52 @@ and the repo's CI workflows — evidence over intuition, no aspirational grading
 
 | Component | Grade | Release stage | Evidence summary | Last assessed |
 |---|---|---|---|---|
-| Profile SDK (`crates/ums-profile-sdk`) | C | Alpha-stable | 12 tests cover registration, malformed ID/version rejection, reflection, fixtures, deterministic adapter behavior, duplicate refusal, two-way profile isolation, IDApTIK compiler execution through `packageCompiler`, explicit Slavia no-compiler behaviour, unknown-profile refusal and rejection of an unsupported declared compiler version. The SDK hosts the CLI and is the sole repository-public profile surface; the implementation crate is non-publishable. A direct `cargo package -p ums-profile-sdk` probe currently rejects the internal path dependency, so standalone registry publication is not claimed. | 2026-08-29 |
+| Profile SDK (`crates/ums-profile-sdk`) | C | Alpha-stable | **2026-11-15 at `87ffbcf`: 104 tests pass in the default suite** (8 unit, 34 `process_preview`, 30 `explain_golden`, 11 `profiles`, 11 `vendored_idaptik`, 9 `vendored_enaction`, 1 `cytoville`), plus 5 `#[ignore]`d `real_chain` tests that passed by hand (see the Enaction adapter row). Earlier record: 12 tests cover registration, malformed ID/version rejection, reflection, fixtures, deterministic adapter behavior, duplicate refusal, two-way profile isolation, IDApTIK compiler execution through `packageCompiler`, explicit Slavia no-compiler behaviour, unknown-profile refusal and rejection of an unsupported declared compiler version. The SDK hosts the CLI and is the sole repository-public profile surface; the implementation crate is non-publishable. A direct `cargo package -p ums-profile-sdk` probe currently rejects the internal path dependency, so standalone registry publication is not claimed. | 2026-11-15 |
 | IDApTIK edit compatibility engine (`crates/ums-ai-edit`, Rust/Crusoe) | C | Alpha-stable | 65 tests (miniKanren kernel, verbs, six runtime relations, deterministic replay and explicit profile dispatch) + sample replay, gated by `rust-ci.yml` with `clippy -D warnings`. | 2026-08-29 |
 | Package/DLC bridge (`crates/ums-dlc` + `schemas/`) | C | Alpha-stable | 39 tests; validates all in-tree artifacts, legacy-manifest compatibility, v1→v2 migration and capability declarations. | 2026-07-25 |
 | Chronicles of Slavia profile | D | Design fixture | Reflection and isolation are tested against a minimal Zone A fixture; no UMS compiler, loader or runtime integration exists. | 2026-07-25 |
-| Enaction adapter | X | Designed only | Typed preview seam and request schema exist; no real adapter or loader exists. | 2026-07-25 |
-| Generation source of truth (`config/*.ncl`) | C | Alpha-stable | `config-check` typechecks every source AND requires all three `config/bad/bad_*.ncl` negative fixtures to be rejected; `gen-check` diffs generated artifacts and fails when `nickel` is absent rather than skipping. Gated by `config-gen.yml`. | 2026-07-22 |
-| Zig FFI (`ffi/zig/`) | C | Compatibility FFI | 32 integration tests are CI-gated and Zig 0.14.0 is pinned. The exported full-JSON admission endpoint agrees with Idris2 on six shared fixtures. The complete bounded C codec preserves active fields across a rich C→JSON→C→JSON test with byte-stable second serialization. The generated Idris2 ABI artifacts cover all 85 independently enumerated C exports, 27 structs, 27 enum representations and 142 discriminants. Tests compare all layouts, discriminants and function ABI shapes; the compiled shared/static symbol gate consumes the generated 85-symbol manifest. Planted layout, signature and symbol drift each fail. These are executable tests, not universal parser, semantic-type or cross-platform layout proofs. Unified-hexadeca integration remains unstarted because no canonical implementation is locatable. | 2026-08-30 |
+| Enaction adapter (`ProcessPreviewAdapter`, ADR-0019 Proposed) | D (was X) | Tested by hand on the real chain; not in CI | The adapter runs a pre-built runner twice and a validator once as processes, with replay identity enforced on every preview. 34 stub-protocol tests and 30 explain-lens tests run in the default suite. On 2026-11-15 all 5 `#[ignore]`d `real_chain` tests passed against `enaction-validate` (enaction-engine `81fa3ed`) and `idaptik-weevil-replay` (IDApTIK `58d6936`, kernel evil-weevil `5c614d7`). So did `just preview-weevil`, which reports 37 commitment-override ticks for the grudge and matches its golden report. CI builds no sibling binaries, so the real chain is not CI-gated. The grade change from X is proposed in this upkeep; the owner may set it differently. | 2026-11-15 |
+| Generation source of truth (`config/*.ncl`) | C | Alpha-stable | 2026-11-15 at `87ffbcf`: `just config-check` and `just gen-check` pass, and the tree is unchanged after generation, with Nickel **1.18.0**. `mise.toml` pins 1.16.0; the pinned version was not run. Earlier record: `config-check` typechecks every source AND requires all three `config/bad/bad_*.ncl` negative fixtures to be rejected; `gen-check` diffs generated artifacts and fails when `nickel` is absent rather than skipping. Gated by `config-gen.yml`. | 2026-11-15 |
+| Zig FFI (`ffi/zig/`) | C | Compatibility FFI | **2026-11-15 at `87ffbcf`, Zig 0.14.0: 31 of 32 integration tests pass and 1 FAILS.** The failure is "complete C LevelData survives JSON round-trip without field loss". `ace5777` (2026-09-11) renamed the admitted guard rank `chief` to `security_chief` and added `reject-chief-alias.json`, but `tests/abi-roundtrip/full-c-layout.json` still uses `"rank":"chief"`, so admission refuses it. The proposed fix is to change that fixture's rank to `security_chief`; it is not made in this upkeep. The compiled-symbol gate passes (85 exports match the manifest). The recipes were run as their underlying `zig` commands, because `mise` is absent. Earlier record: 32 integration tests are CI-gated and Zig 0.14.0 is pinned. The exported full-JSON admission endpoint agrees with Idris2 on six shared fixtures. The complete bounded C codec preserves active fields across a rich C→JSON→C→JSON test with byte-stable second serialization. The generated Idris2 ABI artifacts cover all 85 independently enumerated C exports, 27 structs, 27 enum representations and 142 discriminants. Tests compare all layouts, discriminants and function ABI shapes; the compiled shared/static symbol gate consumes the generated 85-symbol manifest. Planted layout, signature and symbol drift each fail. These are executable tests, not universal parser, semantic-type or cross-platform layout proofs. Unified-hexadeca integration remains unstarted because no canonical implementation is locatable. | 2026-11-15 |
 | Licence hygiene gate | C | Alpha-stable | Three steps, each negative-tested: a planted MPL header, a truncated LICENSE and an unattributed JSON file each make it fail. Polarity inverted with the AGPL relicence. | 2026-07-22 |
 | Idris2 ABI (`abi/`) | C | Beta | All 19 modules typecheck, including `Representation`, `ProvenBridge` and the total `CABI` declaration renderer. Raw JSON extraction is private; the exported parser first checks bounded C-value representability, then admits only `ValidatedLevel` values after all four `Dec` procedures construct their witnesses. The extractor executable reports 51/51 checks and the separate representation executable reports 17/17. Successful refinement carries source-preservation equality; canonical optional payloads and all `ItemKind` variants have dependent re-encoding equalities. The renderer generates the complete current 85-function Zig C-export header, compatibility include and symbol manifest, all byte-drift checked. Complete semantic-record-to-C-struct conversion, auxiliary session/player refinement, universal parser equivalence and cross-platform ABI equivalence remain unproved. No `believe_me`, `postulate`, `assert_total`, `assert_smaller`, `idris_crash` or `unsafePerformIO`, and every package module declares `%default total`: `scripts/check-abi-trusted-base.sh` gates both in `idris-ci.yml` (and `just proof-check-abi`), and fails on any `abi/` file that no package declares. Negative-tested with a planted `believe_me`, an undeclared module, a commented-out `%default total`, an undeclared harness and a 20th module, and since PR #97's review with a qualified module (`Extra.Helper`, resolved to `abi/Extra/Helper.idr`), an undeclared file in a subdirectory, a `%default total` placed after the first declaration, `%default covering`, and `partial` and `covering` modifiers. Caveat: CI builds against a `proven` with `Proven.SafeMath.Proofs` removed, disclosed in `scripts/proven-min.ipkg`. | 2026-08-30 |
 | SPARK/GNATprove reference model (`spark/`) | C | Alpha-stable | **Verification conditions discharged locally**: `gnatprove --level=2` (FSF 16.1.0) reports no unproved checks: 19/19 run-time checks, 8/8 assertions, 7/7 termination, and the `Zones_Ordered` postcondition proved. The postcondition states the quadratic specification; the body is the linear sweep. Not linked at runtime (ADR-0003 §3). `just spark-parity` drives 26 shared vectors through the SPARK model and the Rust engine with identical verdicts. Negative-tested: a body that diverges from its postcondition, an empty vector table, a missing prover, and a prover run that proves nothing each fail; the earlier symmetric specification fails to prove. `spark-ci.yml` runs the same proof and parity gates in CI whenever `spark/`, the Rust engine or the gate scripts change. | 2026-10-09 |
 | Zig hexadeca connector | X | Blocked dependency | Does not exist. Estate reconnaissance cannot locate a canonical `unified-hexadeca-api`; Hypatia's project-local 16-transport pattern is not silently copied here. | 2026-08-29 |
-| Interactive studio frontend | D | Local alpha, runtime gate pending | Vue 3/Bun UI now includes a profile-reflected edit composer, closed vocabulary controls and Rust CLI validation bridge. Bun 1.4.4 frozen install, 13 Bun tests, strict TypeScript and Vite production build passed on a Windows development checkout on 2026-11-01; the local API bootstrap served both descriptors. The local Bun HTTP API smoke test succeeded: descriptor bootstrap, accepted IDApTIK edit replay, refusal of invalid vocabulary and unimplemented Slavia edits, Slavia fixture validation, and IDApTIK package compilation against a fresh game-owned contract checkout. The full IDApTIK game loader was not executed through the UI. The organisation's Studio workflow still fails at startup without running jobs. Most canvas lenses remain unimplemented. | 2026-11-01 |
+| Interactive studio frontend | D | Local alpha, runtime gate pending | 2026-11-15 at `87ffbcf` on Linux with Bun 1.4.4: frozen install, 13 Bun tests, typecheck and production build pass. The language policy question is still open (see `docs/EXPLAINME.adoc`): the studio is TypeScript and no exemption is recorded. Earlier record: Vue 3/Bun UI now includes a profile-reflected edit composer, closed vocabulary controls and Rust CLI validation bridge. Bun 1.4.4 frozen install, 13 Bun tests, strict TypeScript and Vite production build passed on a Windows development checkout on 2026-11-01; the local API bootstrap served both descriptors. The local Bun HTTP API smoke test succeeded: descriptor bootstrap, accepted IDApTIK edit replay, refusal of invalid vocabulary and unimplemented Slavia edits, Slavia fixture validation, and IDApTIK package compilation against a fresh game-owned contract checkout. The full IDApTIK game loader was not executed through the UI. The organisation's Studio workflow still fails at startup without running jobs. Most canvas lenses remain unimplemented. | 2026-11-15 |
 | Reversible VM (`dlc/vm/`, `.affine`) | X | — | Has never compiled. No AffineScript toolchain is wired to this repo; the `.affine` sources have never been exercised by anything, so its declared `every-instruction-has-an-inverse` guarantee has never been checked. | 2026-07-22 |
+
+## Gate record, 2026-11-15
+
+Source commit **S = `87ffbcf`** (UMS `main`, "Weevil route B2: run the
+preview on the real chain"). Every gate below ran on S with an unchanged
+working tree, except where marked OPEN. Sibling checkouts were read-only
+clones at the heads of their default branches: enaction-engine `81fa3ed`,
+evil-weevil `5c614d7`, IDApTIK `58d6936`, chronicles-of-slavia `21b1661`.
+
+| Gate | Result | Evidence |
+|---|---|---|
+| `cargo fmt --all -- --check` | PASS | exit 0 |
+| `cargo clippy --locked --all-targets -- -D warnings` | PASS | exit 0 |
+| `IDAPTIK_ROOT=… cargo test --locked` | PASS | 223 passed, 0 failed, 6 ignored |
+| `real_chain` (5 `#[ignore]`d tests, real binaries) | PASS | 5 of 5 |
+| `just preview-weevil` (the grudge) | PASS | 37 commitment-override ticks; `replay-identical: ok` |
+| `just roundtrip-idaptik` | PASS | accepted, executed, snapshotted, restored, replayed identically |
+| `just architecture-check` (all three `*_ROOT`) | PASS | dependency direction and profile isolation verified |
+| `bash tests/boundaries-planted-violation.sh` | PASS | 11 planted violations fail the gate; the clean estate passes |
+| `just dlc-check` | PASS | 31 artifacts checked, 0 invalid |
+| `just slavia-profile-check` | PASS | Border Path fixture valid |
+| `just ai-edit-check` | PASS | exit 0 |
+| `just config-check`, `just gen-check` | PASS | Nickel 1.18.0, not the pinned 1.16.0; no drift |
+| Studio: `bun install --frozen-lockfile`, `bun test`, `bun run build` | PASS | 13 tests; typecheck and build pass |
+| Zig FFI integration tests (`zig build test`, Zig 0.14.0) | **FAIL** | 31 of 32; see the Zig FFI row |
+| Zig compiled-symbol gate (`zig build` + `scripts/check-abi-symbols.sh`) | PASS | 85 exports match the manifest |
+| `just test-ffi`, `just abi-symbol-check`, `just fmt-check` as recipes | OPEN | `mise` absent; the guard refuses. The FFI commands were run directly with Zig 0.14.0 (rows above) |
+| `just proof-check-abi`, `just abi-header-check` | OPEN | Idris2 absent |
+| `just proof-check-spark` | OPEN | GNATprove absent |
+| REUSE lint | OPEN | `reuse` absent; #107 left vendored files without attribution |
+| `dlc/vm` reversibility | OPEN | AffineScript toolchain absent; the VM has never compiled |
+| CI round-trip step at IDApTIK `58d6936` | OPEN | no CI run observed at that head |
+| Licence hygiene workflow | FAIL (pre-existing) | 12 MPL-2.0 SPDX lines under `.github/`; red on `main`; owner decision |
 
 ## Why Grade D — for a much narrower reason than before
 
@@ -90,8 +125,10 @@ stated rather than papered over.
 - `push-email-notify.yml` is the estate-wide never-green template.
 - ~~Python is banned by the estate language policy; `ai_edit` landed as
   Python~~ — **resolved 2026-07-22.** `ai_edit/`, `scripts/validate_dlc.py`
-  and both test modules are deleted; `git ls-files '*.py'` is empty. ADR-0001
-  is superseded by ADR-0003.
+  and both test modules are deleted. ADR-0001 is superseded by ADR-0003.
+  *Correction, 2026-11-14:* `git ls-files '*.py'` is not empty. It lists
+  `profiles/idaptik/v1/optimisation/experiment.py`, and no exemption is
+  recorded (see `docs/EXPLAINME.adoc`).
 - `abi/Types.idr` and `ffi/zig/src/types.zig` are still hand-written rather
   than generated from `config/vocab.ncl` — the last two of the original six
   copies. They are now **gated** (`crates/ums-dlc/tests/vocab_parity.rs`, 5
@@ -102,10 +139,13 @@ stated rather than papered over.
   still the better end state; wholesale generation is blocked because both
   files also carry ABI-only types (`AlertLevel`, `ItemCondition`, the
   cable/adapter/tool enums) that have no place in an edit vocabulary.
-- The UMS -> game round trip is implemented and CI-gated. A 2026-08-29 local
-  run correctly rejected snapshot contract drift from runtime v2 to v3; the
-  v3 contract repair is part of ADR-0018's consolidation cutover and must pass
-  before the renamed repository is declared green.
+- The UMS -> game round trip passed locally on 2026-11-15 against IDApTIK
+  `58d6936`, which restored `examples/package-runner.rs`. From before that
+  restoration until 2026-11-15 it could not pass (see
+  `docs/ROUNDTRIP-STATUS.adoc`). The CI step is OPEN until a run at that
+  IDApTIK head is observed.
+- The Zig FFI suite fails 1 of 32 tests on `main` since `ace5777`
+  (2026-09-11); see the Zig FFI row.
 - Until 2026-07-20 the Justfile's `test-all` chained five echo-stubs and
   printed "safe to merge!". Those recipes are deleted; every remaining gate
   runs real work and can fail.

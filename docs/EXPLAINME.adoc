@@ -201,9 +201,12 @@ total 1:1 identity per ADR-0004, the zone tier bands must start at 0 and
 strictly increase.
 
 Caveat::
-*The round trip is untested.* No CI job generates a DLC artifact from UMS and
-loads it with IDApTIK's loader. Both sides validate against the same declared
-contract; nothing yet proves the game accepts what UMS emits.
+*Corrected 2026-11-15.* This caveat used to say no CI job loads a UMS artifact
+into IDApTIK. That was out of date: `rust-ci.yml` has a round-trip step (see
+the table below and `docs/ROUNDTRIP-STATUS.adoc`). On 2026-11-15
+`just roundtrip-idaptik` passed locally at UMS `87ffbcf` against IDApTIK
+`58d6936`. No CI run at that IDApTIK head has been observed yet. The round
+trip tests one concrete fixture and path, not arbitrary authored content.
 
 === "19 of 19 Idris2 modules typecheck"
 
@@ -302,7 +305,10 @@ tracked file; it does not gate language.
   `docs/ABI-REPRESENTATION.adoc`.
 
 | UMS → game round trip
-| CI-gated and rerun against merged IDApTIK main on 2026-08-29:
+| *Tested locally on 2026-11-15* at UMS `87ffbcf` against IDApTIK `58d6936`.
+  The CI step is OPEN until a run at that IDApTIK head is observed. Between
+  the loss of IDApTIK's `package-runner` example and its restoration at
+  `58d6936`, neither the recipe nor the CI step could pass.
   `just roundtrip-idaptik` compiles twice, confirms all eight authored field
   groups survive acceptance, then executes, snapshots, restores and replays
   identically. This tests that concrete fixture and path; it is not a proof of
