@@ -84,7 +84,7 @@ Status:
 * protocol: *tested* against stub binaries that copy the real command lines
   and exit codes (`tests/process_preview.rs`);
 * the explain lens on real runner documents: *tested*. The documents that
-  `idaptik-weevil-replay` wrote for six corridor scenarios are vendored by
+  `idaptik-weevil-replay` wrote for twelve corridor scenarios are vendored by
   digest in `vendor/idaptik/weevil-corridor` and their reports are pinned
   (`tests/vendored_idaptik.rs`). No validator runs in that test; that each
   pair exits 0 from `enaction-validate` is IDApTIK's recorded claim;
@@ -92,8 +92,9 @@ Status:
   `tests/real_chain.rs`, that needs `ENACTION_VALIDATE` and
   `IDAPTIK_WEEVIL_REPLAY`. It is not run in CI. All 5 of its tests passed
   by hand on 2026-11-14 against enaction-engine `d74a140`, evil-weevil
-  `c655f46` and IDApTIK `22797e0`. `just preview-weevil` runs the same
-  chain for one scenario.
+  `c655f46` and IDApTIK `22797e0`. After #113 it holds 8; the coordinator
+  reports all 8 passed on 2026-11-15 against IDApTIK `462af7c` on the ABI
+  1.2 kernel. `just preview-weevil` runs the same chain for one scenario.
 
 `docs/DESIGNER-QUICKSTART.adoc` has the commands.
 

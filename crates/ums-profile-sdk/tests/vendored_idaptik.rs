@@ -382,3 +382,23 @@ fn a_corridor_model_is_never_compared_with_world_truth() {
         assert_eq!(model_timelines(&emptied).unwrap(), expected, "{scenario}");
     }
 }
+
+#[test]
+fn the_quickstart_excerpt_is_the_decoy_lure_golden_report() {
+    // docs/DESIGNER-QUICKSTART.adoc, section 3, says its excerpt is pinned
+    // byte for byte as decoy-lure.report.golden.txt. This test holds it to
+    // that: the first [source,text] block after the section heading must
+    // equal the golden exactly.
+    let page = fs::read_to_string(repo_root().join("docs/DESIGNER-QUICKSTART.adoc")).unwrap();
+    let section = page
+        .split("== 3. What the report says")
+        .nth(1)
+        .expect("section 3");
+    let block = section
+        .split("[source,text]\n----\n")
+        .nth(1)
+        .and_then(|rest| rest.split("\n----\n").next())
+        .expect("a [source,text] block");
+    let golden = fs::read_to_string(golden_path("decoy-lure", "txt")).unwrap();
+    assert_eq!(format!("{block}\n"), golden);
+}
