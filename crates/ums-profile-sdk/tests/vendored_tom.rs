@@ -566,3 +566,36 @@ fn an_unresolved_cause_is_shown_not_dropped() {
         "{text}"
     );
 }
+
+#[test]
+fn the_timing_rules_bite_one_tick_past_each_bound() {
+    // caught: belief 3 (contact-21, from tick 5) replaces belief 1 (from
+    // tick 1) because of event 3 (tick 5). CAC-KERNEL section 6 allows
+    // `1 <= cause tick <= 5`. The rejected cases of the corpus sit two or
+    // more ticks outside; this pins each bound to the tick.
+    let with_cause_tick = |tick: u64| {
+        let mut document = caught();
+        document["package"]["events"][2]["tick"] = json!(tick);
+        check_links(&document)
+    };
+    let rules = |result: Result<(), Vec<ExplainError>>| -> Vec<&'static str> {
+        result
+            .err()
+            .unwrap_or_default()
+            .iter()
+            .map(ExplainError::rule)
+            .collect()
+    };
+    assert_eq!(rules(with_cause_tick(5)), Vec::<&str>::new());
+    assert_eq!(rules(with_cause_tick(6)), ["supersession-cause-not-later"]);
+    assert_eq!(rules(with_cause_tick(1)), Vec::<&str>::new());
+    // Belief 1 starts on tick 1; move it to tick 2 so that a cause on tick
+    // 1 is one tick early.
+    let mut document = caught();
+    document["package"]["beliefs"][0]["valid_from"] = json!(2);
+    document["package"]["events"][2]["tick"] = json!(1);
+    assert_eq!(
+        rules(check_links(&document)),
+        ["supersession-cause-not-earlier"]
+    );
+}
