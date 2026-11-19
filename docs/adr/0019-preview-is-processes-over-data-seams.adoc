@@ -6,7 +6,8 @@ Date: 2026-11-14
 
 == Status
 
-Proposed. Nothing here is accepted until the owner accepts it.
+Accepted (owner ruling, 2026-11-19), together with the 2026-11-14
+amendment below. Proposed from 2026-11-14 until then.
 
 Implements Enaction completion-plan step 19 and the replay rule of step 21,
 as retargeted by `WEEVIL-HOST-ROUTE.adoc` (package A4).
@@ -120,7 +121,7 @@ which the crate already had.
 
 == Amendment 2026-11-14 (package B2): one file per document
 
-Status: Proposed, like the decision it amends.
+Status: Accepted (owner ruling, 2026-11-19), with the decision it amends.
 
 The real binaries now exist and differ from the readings above, which were
 made from contract prose against stubs:
@@ -182,18 +183,20 @@ section 9's, and the runner emits one file per document.
 
 | the same against the real `enaction-validate` (digest rule on a tampered
   real runner output)
-| tested by hand on the real chain, 2026-11-14; not in CI
+| tested by hand on the real chain, 2026-11-14; in CI from 2026-11-19 (`real-chain.yml`)
 | `tests/real_chain.rs`,
   `a_tampered_runner_output_is_refused_by_the_real_validator_with_the_digest_rule`;
   `#[ignore]`d, needs `ENACTION_VALIDATE` and `IDAPTIK_WEEVIL_REPLAY`
 
 | the preview works against the real IDApTIK runner and `enaction-validate`
-| tested by hand on the real chain, 2026-11-14; not in CI
+| tested by hand on the real chain, 2026-11-14; in CI from 2026-11-19 (`real-chain.yml`)
 | `tests/real_chain.rs`, run by name with `--ignored`; it fails, never
   passes, when either variable is unset. All 5 tests passed against
   enaction-engine `d74a140`, evil-weevil `c655f46` and IDApTIK `22797e0`,
   including `the_grudge_cli_preview_matches_its_golden_report` (B2's
-  done_when). CI builds no sibling binaries, so this is not a CI gate.
+  done_when). From 2026-11-19 `.github/workflows/real-chain.yml` builds the three binaries and runs
+  these tests in CI: at pinned sibling commits on pull requests and pushes, and
+  at the siblings' heads weekly, as a drift detector (ADR-0016).
   2026-11-15: the file holds 8 tests after #113 (the six slice 2 model
   scenarios); the coordinator reports all 8 passed against IDApTIK
   `462af7c` on the ABI 1.2 kernel and the real validator

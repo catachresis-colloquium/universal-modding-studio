@@ -201,8 +201,9 @@ debug and release. One of them,
 command for "the grudge" and requires its output to equal
 `tests/fixtures/weevil-corridor/the-grudge.report.golden.txt`, apart from
 the two header lines and the validation state. It reports 37
-commitment-override ticks (20..56). The test is not in CI, because CI builds
-no sibling binaries.
+commitment-override ticks (20..56). Since 2026-11-19 CI runs these tests too:
+`.github/workflows/real-chain.yml` builds the three binaries at pinned commits on every
+relevant pull request and push, and at the siblings' latest commits once a week.
 
 The file now holds 8 tests: three more for the slice 2 model scenarios
 (#113). The coordinator reports that all 8 passed on 2026-11-15 against the
