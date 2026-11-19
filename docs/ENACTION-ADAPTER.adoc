@@ -120,9 +120,8 @@ WrongContract: the document is enaction-runner-output/1; this lens reads enactio
 
 So a kernel 1.x document is never reported as a malformed 2.0 one. In a
 preview the refusal goes to stderr and the command fails.
-`tests/vendored_tom.rs`, `tests/vendored_enaction.rs` and
-`tests/vendored_idaptik.rs` check that every vendored `/1` document gets
-exactly that finding.
+`tests/vendored_tom.rs` and `tests/vendored_enaction.rs` check that every
+package of the frozen v1 corpora gets exactly that finding.
 
 Every belief that replaces another shows the belief it replaces and the
 event that caused the revision: its id, kind, observer, tick and
@@ -202,6 +201,7 @@ For IDApTIK's `false-exposure` run the text report shows:
 ----
 model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: says it holds) [tested]
   lifetime: from tick 21 until tick 112; supersedes belief 1
+  replaces belief 1 because of event 2: observation by guard-0 at tick 21, "contact-41 observes guard-0 at tick 21"
   caused by: #2 observation@21
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:
@@ -211,10 +211,6 @@ model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: s
   ticks 52..111: diverges
   stale-divergent: right when stated, wrong from tick 52 without being restated [tested]
 ----
-
-This excerpt comes from the golden report of the `/1` corridor document.
-The lens now refuses that document, and the golden stays as it is until the
-corridor is re-vendored from an IDApTIK commit that emits `/2`.
 
 `explain::model_timelines` gives the same derivation in the shape of the
 `expected.json` files of Enaction's `conformance/tom/v2`, vendored by digest

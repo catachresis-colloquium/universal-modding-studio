@@ -26,10 +26,12 @@
 //! under the depth-1 policies `vendor/idaptik/enaction-policies-models.json`;
 //! under the depth-0 file the real validator must refuse them as
 //! `nesting-bounded`. Their figures are those of the vendored documents
-//! (IDApTIK 802b009, where each contact remembers for 30 ticks). The
-//! coordinator ran all 8 tests on 2026-11-15 against IDApTIK 462af7c; the
-//! figures for caught and false-exposure changed with 802b009 and have not
-//! been run on the real chain by this package.
+//! (IDApTIK pull request 234 head d867eca, kernel contract 2.0, where each
+//! contact remembers for 30 ticks). The move to contract 2.0 changed the
+//! tag and the supersession links, and no count, verdict or timeline. The
+//! coordinator ran all 8 tests on 2026-11-15 against IDApTIK 462af7c; this
+//! package has not run them against d867eca, and the validator must be one
+//! that reads kernel contract 2.0 (enaction-engine 11bd247 or later).
 
 mod support;
 
@@ -377,6 +379,10 @@ fn the_model_scenarios_match_their_vendored_documents_under_the_depth_1_policies
         println!(
             "{profile}: replay-identical: ok; validator accepted; {}",
             report["model_summary"]
+        );
+        assert_eq!(
+            report["inputs"]["runner_output"], "enaction-runner-output/2",
+            "{profile}"
         );
         let (models, stale) = expected_models(profile);
         assert_eq!(report["model_summary"]["models"], models, "{profile}");

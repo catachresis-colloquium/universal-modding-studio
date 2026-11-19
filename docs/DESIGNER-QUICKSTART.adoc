@@ -68,9 +68,9 @@ target/debug/ums-profile preview \
 What the flags do:
 
 * `--runner-output-flag --emit-epistemic` makes the runner write its
-  `enaction-runner-output/1` document to a file that UMS chooses. For a
-  scenario with a mind (`the-grudge`, `the-flinch`, `the-stalker`, `caught`,
-  `false-exposure` and their controls), add
+  `enaction-runner-output/2` document (kernel contract 2.0) to a file that
+  UMS chooses. For a scenario with a mind (`the-grudge`, `the-flinch`,
+  `the-stalker`, `caught`, `false-exposure` and their controls), add
   `--mind-trace-flag --emit-mind-trace`;
 * the runner runs twice, into two private directories. If the two documents
   differ by one byte, the preview stops with `ReplayMismatch`;
@@ -92,7 +92,7 @@ A real run first prints `replay-identical: ok` and `validator: accepted
 *The output below is not from a run of the command above.* It is the explain
 lens over the decoy-lure document that the real runner wrote, vendored by
 digest in `vendor/idaptik/weevil-corridor/decoy-lure.runner-output.json`
-(from IDApTIK `main`; the commit is in `vendor/idaptik/PROVENANCE.json`). No
+(from IDApTIK; the commit is in `vendor/idaptik/PROVENANCE.json`). No
 validator ran on it here, so its inputs line says
 `(not-validated)`, and the two header lines of a live preview are missing.
 It is pinned byte for byte as
@@ -101,7 +101,7 @@ It is pinned byte for byte as
 [source,text]
 ----
 explain report ums-explain/3
-inputs: enaction-runner-output/1 + no mind trace (not-validated)
+inputs: enaction-runner-output/2 + no mind trace (not-validated)
 package profile: idaptik/weevil-corridor 1.0
 leak-verdict: unverified (no counterfactual seam)
 beliefs: 36; agrees-with-world: 0; diverges-from-world: 36; no-claim: 0
