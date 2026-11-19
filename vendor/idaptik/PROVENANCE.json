@@ -1,21 +1,24 @@
 {
   "repository": "https://github.com/catachresis-colloquium/IDApTIK",
-  "commit": "802b009b225eeada44fcc1bc0d4d6fb69b97f66f",
-  "branch": "main",
+  "commit": "d867eca06a0ce26e25a309751ec0d8e716e3ae8c",
+  "branch": "marina/hopeful-cannon-dhgq4h",
+  "pull_request": 234,
+  "pin_state": "IDApTIK pull request 234 head; re-pin to the main commit after merge",
   "first_vendored_from": {
     "commit": "87b47a60699d125421ecff16be784242ace3ed9d",
     "branch": "marina/weevil-b1-runner"
   },
   "previously_vendored_from": {
-    "commit": "462af7c5f74e3cbf10e141e9868332e3997ec500",
+    "commit": "802b009b225eeada44fcc1bc0d4d6fb69b97f66f",
     "branch": "main",
-    "sha256sums_digest": "a736577a9102a289e6f82e77cf6e8c2ccc420938afe8816bc112b4616abd8b63"
+    "tree": "b5efe509cc093a6d9e06e9e0c11bd9100a281927",
+    "sha256sums_digest": "44a668c1ec66ab92306a10968a75417a3b1b446b5627daf5faab0701d47f5478"
   },
   "path": "crates/idaptik-weevil/tests/fixtures/enaction",
-  "tree": "b5efe509cc093a6d9e06e9e0c11bd9100a281927",
-  "vendored_on": "2026-11-15",
-  "source_updated_on": "2026-11-15",
-  "sha256sums_digest": "44a668c1ec66ab92306a10968a75417a3b1b446b5627daf5faab0701d47f5478",
+  "tree": "531fe5e46f5b2a7cdafa22a941473f9947456d14",
+  "vendored_on": "2026-11-19",
+  "source_updated_on": "2026-11-19",
+  "sha256sums_digest": "fb3323be0ec45b3fce448271686ebe6b5e8485d9f6dfbea2be64a16067ea574c",
   "policies": {
     "path": "crates/idaptik-weevil/tests/fixtures/enaction-policies.json",
     "vendored_as": "vendor/idaptik/enaction-policies.json",
@@ -30,5 +33,5 @@
     "depth_max_order": 1,
     "for": "the six slice 2 model runs"
   },
-  "note": "Byte copy of the corridor runner's committed Enaction documents (22 documents, README.md, SHA256SUMS) at IDApTIK main 802b009 (#232, contacts remember, and #233, which regenerated the README line of SHA256SUMS; do not vendor from 03ca0e0, whose SHA256SUMS has a stale README line). SHA256SUMS is IDApTIK's own file. Against 462af7c, five files changed: README.md, SHA256SUMS and three runner outputs (caught, false-exposure, false-exposure-control), because each scripted contact now has a memory window (30 ticks in the six model runs). The other 19 documents and both policies files are byte-identical. Before 462af7c, the ten documents vendored from 22797e0 differed from 462af7c's in the kernel label only (evil-weevil 1.1 -> 1.2). Do not edit the vendored files: re-vendor from a new commit and update this record."
+  "note": "Byte copy of the corridor runner's committed Enaction documents (22 documents, README.md, SHA256SUMS) at IDApTIK pull request 234 head d867eca, which emits kernel contract 2.0 (enaction-runner-output/2, typed supersession links). Re-pin to the main commit after merge: a squash merge keeps these bytes, and diff -r against that commit must be empty. Against 802b009, the 12 runner outputs, README.md and SHA256SUMS changed; the 10 mind traces and both policies files are byte-identical. SHA256SUMS is IDApTIK's own file. Do not edit the vendored files: re-vendor from a new commit and update this record."
 }

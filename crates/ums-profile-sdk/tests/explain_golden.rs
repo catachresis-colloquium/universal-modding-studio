@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
-//! The explain lens for `enaction-runner-output/1` plus
-//! `enaction-mind-trace/1`: golden report, commitment override, belief
+//! The explain lens for `enaction-runner-output/2` (kernel contract 2.0)
+//! plus `enaction-mind-trace/1`: golden report, commitment override, belief
 //! divergence under the closed-world rule (CAC-KERNEL section 9) and the
 //! deferred leak verdict. The fixtures have the real document shapes:
 //! propositions are opaque strings, a belief has a `bearer` and an
@@ -403,10 +403,86 @@ fn an_unknown_status_is_refused() {
 
 #[test]
 fn a_runner_output_with_another_contract_is_refused() {
-    let mut runner = fixture("runner-output.json");
-    runner["contract"] = json!("enaction-runner-output/2");
-    let error = explain(&runner, None, false).unwrap_err();
+    for tag in ["enaction-runner-output/1", "enaction-runner-output/3", "x"] {
+        let mut runner = fixture("runner-output.json");
+        runner["contract"] = json!(tag);
+        let error = explain(&runner, None, false).unwrap_err();
+        assert_eq!(error.rule(), "WrongContract", "{error}");
+        assert_eq!(error.path(), Some("contract"), "{error}");
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "WrongContract: the document is {tag}; this lens reads \
+                 enaction-runner-output/2 (kernel contract 2.0) only, and refuses \
+                 any other tag without reading the body"
+            )
+        );
+    }
+}
+
+#[test]
+fn the_tag_is_read_before_the_body() {
+    // CAC-KERNEL section 9: a document that names another contract is
+    // refused for that alone; its body is not read as this contract's shape.
+    // A v1 link (a bare belief id), a float and a body of the wrong type all
+    // give the tag finding, not a shape or integer finding.
+    let mut v1 = fixture("runner-output.json");
+    v1["contract"] = json!("enaction-runner-output/1");
+    v1["package"]["beliefs"][6]["supersedes"] = json!(2);
+    v1["package"]["beliefs"][0]["valid_from"] = json!(1.5);
+    let error = explain(&v1, None, false).unwrap_err();
     assert_eq!(error.rule(), "WrongContract", "{error}");
+    let other = json!({"contract": "enaction-runner-output/1", "package": "not a package"});
+    assert_eq!(
+        explain(&other, None, false).unwrap_err().rule(),
+        "WrongContract"
+    );
+}
+
+#[test]
+fn a_missing_or_non_string_tag_is_left_to_the_decoder() {
+    let mut runner = fixture("runner-output.json");
+    runner.as_object_mut().unwrap().remove("contract");
+    let error = explain(&runner, None, false).unwrap_err();
+    assert_eq!(error.rule(), "MalformedRunnerOutput", "{error}");
+    let mut runner = fixture("runner-output.json");
+    runner["contract"] = json!(2);
+    let error = explain(&runner, None, false).unwrap_err();
+    assert_eq!(error.rule(), "MalformedRunnerOutput", "{error}");
+}
+
+#[test]
+fn a_link_without_a_cause_has_no_wire_form() {
+    // ADR-0030: `supersedes` is absent, or a record of `belief` and
+    // `because`. A bare id, a record without `because` and a record with
+    // another member are refused at decode.
+    for link in [
+        json!(2),
+        json!({"belief": 2}),
+        json!({"because": 12}),
+        json!({"belief": 2, "because": 12, "why": "x"}),
+    ] {
+        let mut runner = fixture("runner-output.json");
+        runner["package"]["beliefs"][6]["supersedes"] = link.clone();
+        let error = explain(&runner, None, false).unwrap_err();
+        assert_eq!(error.rule(), "MalformedRunnerOutput", "{link}: {error}");
+    }
+    let mut runner = fixture("runner-output.json");
+    runner["package"]["beliefs"][6]["supersedes"] = json!({"belief": 2, "because": 12});
+    let report = explain(&runner, None, false).expect("a typed link is read");
+    let seven = belief(&report, "agent-a", 7);
+    assert_eq!(seven["supersedes"], 2);
+    assert_eq!(
+        seven["supersedes_because"],
+        json!({"id": 12, "resolved": true, "kind": "action_outcome", "observer": "agent-a", "tick": 12, "proposition": "alarm is on"})
+    );
+    assert!(
+        render_text(&report).contains(
+            "  belief 7: \"alarm is on\" (rejected 200..900); in world truth -> diverges-from-world [tested]\n    replaces belief 2 because of event 12: action_outcome by agent-a at tick 12, \"alarm is on\"\n"
+        ),
+        "{}",
+        render_text(&report)
+    );
 }
 
 #[test]
@@ -520,9 +596,9 @@ fn cli_preview_explain_prints_the_designer_report() {
         .args([
             "preview",
             "--runner",
-            stub("runner-deterministic.sh").to_str().unwrap(),
+            fixture_path("runner-v2.sh").to_str().unwrap(),
             "--validator",
-            stub("validator-accepts.sh").to_str().unwrap(),
+            stub("validator-accepts-any.sh").to_str().unwrap(),
             "--policies",
             stub("policies.json").to_str().unwrap(),
             "--runner-output-flag",
@@ -542,7 +618,7 @@ fn cli_preview_explain_prints_the_designer_report() {
     assert!(stdout.starts_with("replay-identical: ok\n"), "{stdout}");
     assert!(
         stdout.contains(
-            "inputs: enaction-runner-output/1 + enaction-mind-trace/1 (validator-accepted)"
+            "inputs: enaction-runner-output/2 + enaction-mind-trace/1 (validator-accepted)"
         ),
         "{stdout}"
     );
@@ -563,10 +639,45 @@ fn cli_preview_explain_prints_the_designer_report() {
 }
 
 #[test]
+fn cli_preview_explain_refuses_a_v1_runner_output_visibly() {
+    // The preview stubs still emit enaction-runner-output/1. The preview
+    // itself passes (replay and validator stubs), and the lens then refuses
+    // the document for its tag, on stderr, with a failing exit status.
+    let output = Command::new(env!("CARGO_BIN_EXE_ums-profile"))
+        .args([
+            "preview",
+            "--runner",
+            stub("runner-deterministic.sh").to_str().unwrap(),
+            "--validator",
+            stub("validator-accepts.sh").to_str().unwrap(),
+            "--policies",
+            stub("policies.json").to_str().unwrap(),
+            "--runner-output-flag",
+            "--emit-epistemic",
+            "--explain",
+        ])
+        .output()
+        .expect("ums-profile runs");
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty(), "{:?}", output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains(
+            "WrongContract: the document is enaction-runner-output/1; this lens reads \
+             enaction-runner-output/2 (kernel contract 2.0) only, and refuses any other \
+             tag without reading the body"
+        ),
+        "{stderr}"
+    );
+}
+
+#[test]
 fn the_report_tag_is_ums_explain_3_and_every_golden_carries_it() {
     // ums-explain/3: models are no longer compared with world truth or
     // counted in the per-agent belief summaries, a changed meaning, so the
     // tag was bumped (docs/ENACTION-ADAPTER.adoc, "Report versions").
+    // Kernel contract 2.0 keeps it: the input tag and the cause members and
+    // lines are additions, and no existing member or line changes meaning.
     assert_eq!(REPORT_CONTRACT, "ums-explain/3");
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
     let mut goldens = 0;
@@ -586,6 +697,7 @@ fn the_report_tag_is_ums_explain_3_and_every_golden_carries_it() {
             }
         }
     }
-    // One text and one JSON golden for the stub and each of 12 scenarios.
-    assert_eq!(goldens, 26);
+    // One text and one JSON golden for the stub, for tom/v2
+    // false-exposure-restated, and for each of 12 corridor scenarios.
+    assert_eq!(goldens, 28);
 }

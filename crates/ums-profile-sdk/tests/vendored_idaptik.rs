@@ -8,6 +8,11 @@
 //! says every pair exits 0 from `enaction-validate`; that is IDApTIK's
 //! claim and is not re-checked here (no validator runs in this test).
 //!
+//! Kernel contract 2.0 (enaction-engine ADR-0030): the runner outputs are
+//! `enaction-runner-output/2`, and each supersession link names its cause.
+//! `every_corridor_runner_output_is_contract_2_and_breaks_no_link_rule`
+//! holds the vendored set to that.
+//!
 //! The explain lens runs over each scenario and its report is pinned as a
 //! golden file in `tests/fixtures/weevil-corridor`. The figures asserted
 //! below were measured by the coordinator on the real chain on 2026-11-14:
@@ -23,7 +28,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use support::{check_vendored, copy_tree, read_json, repo_root, sha256_hex};
 use ums_profile_sdk::canonical::to_canonical_string;
-use ums_profile_sdk::explain::{explain, model_timelines, render_text};
+use ums_profile_sdk::explain::{check_links, explain, model_timelines, render_text};
 
 /// The runs before slice 2, under the depth-0 policies.
 const SCENARIOS: [&str; 6] = [
@@ -153,6 +158,34 @@ fn the_model_runs_hold_models_and_the_earlier_runs_do_not() {
         "false-exposure-control",
     ] {
         assert_eq!(order(scenario), 0, "{scenario}");
+    }
+}
+
+#[test]
+fn every_corridor_runner_output_is_contract_2_and_breaks_no_link_rule() {
+    // The lens's copy of belief-key-chained and the six cause rules finds
+    // nothing in any corridor run, and every model run has at least one
+    // link, so the check has something to read.
+    let mut checked = 0;
+    for scenario in all_scenarios() {
+        let runner_output = read_json(&corridor().join(format!("{scenario}.runner-output.json")));
+        assert_eq!(
+            runner_output["contract"], "enaction-runner-output/2",
+            "{scenario}"
+        );
+        check_links(&runner_output).unwrap_or_else(|findings| panic!("{scenario}: {findings:?}"));
+        checked += 1;
+    }
+    assert_eq!(checked, 12);
+    for scenario in ["the-stalker", "caught", "false-exposure"] {
+        let runner_output = read_json(&corridor().join(format!("{scenario}.runner-output.json")));
+        let links = runner_output["package"]["beliefs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|belief| belief.get("supersedes").is_some())
+            .count();
+        assert!(links > 0, "{scenario} has no supersession link");
     }
 }
 

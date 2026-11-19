@@ -68,8 +68,6 @@ pub fn regenerate_sums(dir: &Path) -> String {
 /// Check a vendored directory against its `SHA256SUMS` and the digest of
 /// that file pinned in `provenance` (a JSON file with `sha256sums_digest`).
 pub fn check_vendored(dir: &Path, provenance: &Path) -> Result<(), String> {
-    let sums = fs::read(dir.join("SHA256SUMS"))
-        .map_err(|error| format!("{}/SHA256SUMS: {error}", dir.display()))?;
     let record: Value = serde_json::from_str(
         &fs::read_to_string(provenance)
             .map_err(|error| format!("{}: {error}", provenance.display()))?,
@@ -78,6 +76,14 @@ pub fn check_vendored(dir: &Path, provenance: &Path) -> Result<(), String> {
     let pinned = record["sha256sums_digest"]
         .as_str()
         .ok_or("provenance has no sha256sums_digest")?;
+    check_vendored_against(dir, pinned)
+}
+
+/// Check a vendored directory against its `SHA256SUMS` and a pinned digest
+/// of that file, for a provenance record that lists several corpora.
+pub fn check_vendored_against(dir: &Path, pinned: &str) -> Result<(), String> {
+    let sums = fs::read(dir.join("SHA256SUMS"))
+        .map_err(|error| format!("{}/SHA256SUMS: {error}", dir.display()))?;
     let actual = sha256_hex(&sums);
     if actual != pinned {
         return Err(format!(

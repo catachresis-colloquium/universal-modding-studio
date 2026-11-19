@@ -1,11 +1,16 @@
 {
   "repository": "https://github.com/catachresis-colloquium/enaction-engine",
-  "commit": "7c3586eaa867eaa5fd22575b166d4a48b76eaec0",
+  "commit": "11bd247b81dd336a5c153e588d99528002b321f3",
   "branch": "main",
   "path": "conformance/tom/v1",
-  "vendored_on": "2026-11-15",
-  "tree": "07c3b5904f956ebf7422063a05fec48e04843799",
-  "tree_note": "The git tree of conformance/tom/v1 is the same at 81fa3ed (#112, the C0 follow-up that fixed the timeline rule) and at 7c3586e (#113, docs only).",
-  "sha256sums_digest": "0005da7f8a0661ae7db3277e612ce7b1b0b95592439465c09dfcca0c7fdf986d",
-  "note": "Byte copy of conformance/tom/v1 at this commit. SHA256SUMS is upstream's own file; its digest is pinned here. Do not edit the vendored files: re-vendor from a new commit and update this record."
+  "vendored_on": "2026-11-19",
+  "tree": "e778ae5025334cb7ee8dd73eb0e7ebb5068b24ee",
+  "state": "frozen",
+  "previously_vendored_from": {
+    "commit": "7c3586eaa867eaa5fd22575b166d4a48b76eaec0",
+    "tree": "07c3b5904f956ebf7422063a05fec48e04843799",
+    "sha256sums_digest": "0005da7f8a0661ae7db3277e612ce7b1b0b95592439465c09dfcca0c7fdf986d"
+  },
+  "sha256sums_digest": "4d09a3ccd08561b346f1ef80a6e1d6d987e28df90cf5c781fe9c1191f7501cfc",
+  "note": "Byte copy of conformance/tom/v1 at this commit, in the frozen state of ADR-0030: no file in it changes again upstream. Against 7c3586e it adds two rejected cases (belief-key-chained and supersession-monotone, ADR-0029) and changes README.adoc and SHA256SUMS; every other file is byte-identical. A kernel contract 2.0 reader refuses every package in it for its tag alone. SHA256SUMS is upstream's own file; its digest is pinned here. Do not edit the vendored files."
 }
