@@ -5,20 +5,43 @@
 //! (CAC-KERNEL section 6: fixtures are the cross-repository currency, and
 //! consumers vendor them against a recorded digest).
 //!
-//! `vendor/enaction/conformance/mind/v1` is a byte copy of
-//! `conformance/mind/v1` from enaction-engine at the commit recorded in
-//! `vendor/enaction/PROVENANCE.json`.
+//! `vendor/enaction/conformance/mind/v2` is a byte copy of
+//! `conformance/mind/v2` from enaction-engine at the commit recorded in
+//! `vendor/enaction/conformance/PROVENANCE.json`: the kernel contract 2.0
+//! form (ADR-0030, a draft). Its traces are `enaction-mind-trace/1`, as
+//! before; its paired runner output is `enaction-runner-output/2`.
+//!
+//! `vendor/enaction/conformance/mind/v1` is the 1.x form, a byte copy at the
+//! commit recorded in `vendor/enaction/PROVENANCE.json`. Enaction froze it,
+//! and so does this tree: its sums must still hold, and the lens refuses its
+//! runner output for its tag alone, with one finding.
 
 mod support;
 
 use serde_json::{Value, json};
 use std::fs;
 use std::path::{Path, PathBuf};
-use support::{check_vendored, copy_tree, read_json, repo_root};
-use ums_profile_sdk::explain::{explain, render_text};
+use support::{check_vendored, check_vendored_against, copy_tree, read_json, repo_root};
+use ums_profile_sdk::explain::{check_links, explain, model_timelines, render_text};
+
+fn v1() -> PathBuf {
+    repo_root().join("vendor/enaction/conformance/mind/v1")
+}
 
 fn corpus() -> PathBuf {
-    repo_root().join("vendor/enaction/conformance/mind/v1")
+    repo_root().join("vendor/enaction/conformance/mind/v2")
+}
+
+/// The pinned digest of `mind/v2/SHA256SUMS` in the v2 provenance record.
+fn pinned() -> String {
+    read_json(&repo_root().join("vendor/enaction/conformance/PROVENANCE.json"))["corpora"]
+        .as_array()
+        .expect("corpora")
+        .iter()
+        .find(|entry| entry["path"] == "conformance/mind/v2")
+        .and_then(|entry| entry["sha256sums_digest"].as_str())
+        .expect("a pinned digest for conformance/mind/v2")
+        .to_owned()
 }
 
 fn provenance() -> PathBuf {
@@ -26,8 +49,36 @@ fn provenance() -> PathBuf {
 }
 
 #[test]
-fn the_vendored_corpus_matches_its_sums_and_pinned_digest() {
-    check_vendored(&corpus(), &provenance()).unwrap_or_else(|error| panic!("{error}"));
+fn the_frozen_v1_corpus_still_matches_its_sums_and_pinned_digest() {
+    check_vendored(&v1(), &provenance()).unwrap_or_else(|error| panic!("{error}"));
+}
+
+#[test]
+fn the_vendored_v2_corpus_matches_its_sums_and_pinned_digest() {
+    check_vendored_against(&corpus(), &pinned()).unwrap_or_else(|error| panic!("{error}"));
+}
+
+#[test]
+fn the_v1_runner_output_is_refused_for_its_tag_alone_with_one_finding() {
+    let document = read_json(&v1().join("runner-output.json"));
+    assert_eq!(document["contract"], "enaction-runner-output/1");
+    let trace = read_json(&v1().join("accepted/the-grudge/mind-trace.json"));
+    let message = "WrongContract: the document is enaction-runner-output/1; this lens \
+                   reads enaction-runner-output/2 (kernel contract 2.0) only, and refuses \
+                   any other tag without reading the body";
+    let error = explain(&document, Some(&trace), false).expect_err("explain");
+    assert_eq!(error.rule(), "WrongContract");
+    assert_eq!(error.path(), Some("contract"));
+    assert_eq!(error.to_string(), message);
+    assert_eq!(
+        model_timelines(&document)
+            .expect_err("timelines")
+            .to_string(),
+        message
+    );
+    let findings = check_links(&document).expect_err("check_links");
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert_eq!(findings[0].to_string(), message);
 }
 
 #[test]
@@ -43,13 +94,30 @@ fn the_provenance_names_the_upstream_commit_and_path() {
     assert!(commit.chars().all(|c| c.is_ascii_hexdigit()), "{commit}");
 }
 
+/// A scratch copy of the frozen v1 corpus, for the planted-failure tests of
+/// the digest check (the same check guards v2).
 fn scratch_copy(name: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
         .join("vendored-enaction")
         .join(name);
     let _ = fs::remove_dir_all(&dir);
-    copy_tree(&corpus(), &dir);
+    copy_tree(&v1(), &dir);
     dir
+}
+
+#[test]
+fn a_changed_v2_file_fails_the_check() {
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join("vendored-enaction")
+        .join("changed-v2");
+    let _ = fs::remove_dir_all(&dir);
+    copy_tree(&corpus(), &dir);
+    let path = dir.join("runner-output.json");
+    let mut bytes = fs::read(&path).unwrap();
+    bytes.push(b' ');
+    fs::write(&path, bytes).unwrap();
+    let error = check_vendored_against(&dir, &pinned()).expect_err("changed file");
+    assert!(error.contains("runner-output.json"), "{error}");
 }
 
 #[test]

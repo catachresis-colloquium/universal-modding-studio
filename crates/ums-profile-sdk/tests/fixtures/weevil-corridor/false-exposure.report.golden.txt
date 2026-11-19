@@ -1,5 +1,5 @@
 explain report ums-explain/3
-inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
+inputs: enaction-runner-output/2 + enaction-mind-trace/1 (not-validated)
 package profile: idaptik/weevil-corridor 1.0
 mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.2
 leak-verdict: unverified (no counterfactual seam)
@@ -10,6 +10,7 @@ agent contact-41: commitment-override ticks: 0 of 0 [tested]
   beliefs: 2; agrees-with-world: 1; diverges-from-world: 0; no-claim: 1
   belief 2: "guard-0 in room-0" (certain 10000..10000); in world truth -> agrees-with-world [tested]
   belief 4: "guard-0 in room-0" (unknown 0..10000); in world truth -> no-claim [tested]
+    replaces belief 2 because of event 4: observation by contact-41 at tick 52, "contact-41 does not observe guard-0 at tick 52"
 
 agent guard-0: commitment-override ticks: 0 of 200 [tested]
   tells at: caught@21
@@ -54,6 +55,7 @@ model 1: guard-0 models contact-41: "guard-0 in room-0" (rejected 0..0: says it 
 
 model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: says it holds) [tested]
   lifetime: from tick 21 until tick 112; supersedes belief 1
+  replaces belief 1 because of event 2: observation by guard-0 at tick 21, "contact-41 observes guard-0 at tick 21"
   caused by: #2 observation@21
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:
@@ -65,6 +67,7 @@ model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: s
 
 model 5: guard-0 models contact-41: "guard-0 in room-0" (rejected 0..0: says it does not hold) [tested]
   lifetime: from tick 112 (not superseded); supersedes belief 3
+  replaces belief 3 because of event 5: observation by guard-0 at tick 112, "contact-41 in room-0 at tick 112"
   caused by: #5 observation@112
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:

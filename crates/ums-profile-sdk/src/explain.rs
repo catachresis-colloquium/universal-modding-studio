@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
-//! The explain lens: one `enaction-runner-output/1` document and, when the
+//! The explain lens: one `enaction-runner-output/2` document and, when the
 //! runner emitted one, one `enaction-mind-trace/1` document become a
 //! designer report.
 //!
-//! Both documents are read in the shapes Enaction defines (CAC-KERNEL
-//! sections 9 and 10) and that `conformance/mind/v1` pins, with unknown
-//! fields refused. A mind publishes a ranking of candidates and never a
+//! Both documents are read in the shapes Enaction defines for kernel
+//! contract 2.0 (CAC-KERNEL sections 9 and 10, enaction-engine ADR-0030, a
+//! draft) and that `conformance/tom/v2` and `conformance/mind/v2` pin, with
+//! unknown fields refused. The lens reads the runner output's `contract`
+//! tag before it decodes the body, and refuses any tag other than
+//! [`RUNNER_OUTPUT_CONTRACT`] for that alone, with one finding
+//! (`WrongContract` at `contract`): an `enaction-runner-output/1` document
+//! is never reported as a malformed `/2` one. A mind publishes a ranking of candidates and never a
 //! score, so the lens shows rankings and derives nothing from utilities.
 //!
 //! Per agent the report has:
@@ -21,7 +26,9 @@
 //!   the incumbent and is not first in the ranking. The producer does not
 //!   assert it; the lens derives it. Its ticks are listed per agent;
 //! * the ticks at which each tell is shown;
-//! * the order-0 beliefs the agent bears, each compared with world truth
+//! * the order-0 beliefs the agent bears, each with the belief it
+//!   supersedes and the cause the link names (the event's id, kind,
+//!   observer, tick and proposition), and each compared with world truth
 //!   under the closed-world rule of CAC-KERNEL section 9: world truth lists
 //!   every stated proposition that is true, so a stated proposition absent
 //!   from it is false. A held belief (`certain`, `believed`, `suspected`)
@@ -32,8 +39,8 @@
 //! Per model (a belief of order 1 or more, `holders` not empty) the report
 //! has a row in `models`, derived by the rule of CAC-KERNEL section 9,
 //! "Models are compared with minds" (ADR-0028), and never compared with
-//! world truth: the holder path, bearer, proposition and status, the cited
-//! causes, the beliefs it is compared with (the outermost holder removed,
+//! world truth: the holder path, bearer, proposition and status, the
+//! belief it supersedes with the cause the link names, the cited causes, the beliefs it is compared with (the outermost holder removed,
 //! the same bearer and proposition) with their own order-0 world verdict,
 //! whether the world holds the proposition (shown as a separate fact), and
 //! the timeline over the model's lifetime: segments of `agrees`,
@@ -42,8 +49,15 @@
 //! belief is not unique inside its lifetime is shown as refused
 //! (`model-counterpart-unique`) with no timeline. [`model_timelines`]
 //! gives the same derivation in the shape of Enaction's
-//! `conformance/tom/v1` `expected.json`, which `tests/vendored_tom.rs`
+//! `conformance/tom/v2` `expected.json`, which `tests/vendored_tom.rs`
 //! checks case by case.
+//!
+//! [`check_depth`] and [`check_links`] repeat the package rules that the
+//! rejected cases of `conformance/tom/v2` name (`nesting-bounded`,
+//! `belief-key-chained` and the six `supersession-cause-*` rules), so that
+//! a reader of the corpus refuses what it refuses without running Enaction
+//! code. They are not the validator: [`explain`] does not run them, and a
+//! preview relies on `enaction-validate` for every package rule.
 //!
 //! Every derived row carries a [`GuaranteeLevel`]: `tested` where a test in
 //! `tests/explain_golden.rs` covers the derivation, `designed` otherwise.
@@ -65,7 +79,7 @@ pub const REPORT_CONTRACT: &str = "ums-explain/3";
 /// Contract tag of the mind trace this lens reads.
 pub const MIND_TRACE_CONTRACT: &str = "enaction-mind-trace/1";
 /// Contract tag of the runner output this lens reads.
-pub const RUNNER_OUTPUT_CONTRACT: &str = "enaction-runner-output/1";
+pub const RUNNER_OUTPUT_CONTRACT: &str = "enaction-runner-output/2";
 /// The only leak verdict this lens can give.
 pub const LEAK_VERDICT: &str = "unverified (no counterfactual seam)";
 
@@ -185,11 +199,12 @@ struct Conation {
     target: Option<String>,
 }
 
-// ---- enaction-runner-output/1 (CAC-KERNEL section 9) ----
+// ---- enaction-runner-output/2 (CAC-KERNEL section 9) ----
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Envelope {
+    #[allow(dead_code)] // `check_tag` reads the tag before the body is decoded.
     contract: String,
     package: Package,
     world_truth: Vec<String>,
@@ -220,7 +235,24 @@ struct Belief {
     source_events: Vec<u64>,
     valid_from: u64,
     #[serde(default)]
-    supersedes: Option<u64>,
+    supersedes: Option<Link>,
+}
+
+/// A supersession link of kernel contract 2.0 (ADR-0030): the belief
+/// replaced and the event that caused the revision. A link with no cause
+/// has no wire form.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Link {
+    belief: u64,
+    because: u64,
+}
+
+impl Belief {
+    /// The id of the belief this one replaces, if any.
+    fn replaces(&self) -> Option<u64> {
+        self.supersedes.map(|link| link.belief)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
@@ -359,20 +391,33 @@ pub fn explain(
     }))
 }
 
-fn read_envelope(runner_output: &Value) -> Result<Envelope, ExplainError> {
-    canonical::check_integers(runner_output)?;
-    let envelope: Envelope = serde_json::from_value(runner_output.clone())
-        .map_err(|error| ExplainError::new("MalformedRunnerOutput", error.to_string()))?;
-    if envelope.contract != RUNNER_OUTPUT_CONTRACT {
-        return Err(ExplainError::new(
-            "WrongContract",
-            format!(
-                "expected {RUNNER_OUTPUT_CONTRACT}, found {}",
-                envelope.contract
-            ),
-        ));
+/// Refuse a runner output whose `contract` tag is a string other than
+/// [`RUNNER_OUTPUT_CONTRACT`], before anything else in it is read
+/// (CAC-KERNEL section 9, "The contract tag"). A document with no
+/// `contract` member, or one that is not a string, is left to the decoder.
+fn check_tag(runner_output: &Value) -> Result<(), ExplainError> {
+    match runner_output.get("contract") {
+        Some(Value::String(tag)) if tag != RUNNER_OUTPUT_CONTRACT => {
+            let mut error = ExplainError::new(
+                "WrongContract",
+                format!(
+                    "the document is {tag}; this lens reads {RUNNER_OUTPUT_CONTRACT} \
+                     (kernel contract 2.0) only, and refuses any other tag without \
+                     reading the body"
+                ),
+            );
+            error.path = Some("contract".into());
+            Err(error)
+        }
+        _ => Ok(()),
     }
-    Ok(envelope)
+}
+
+fn read_envelope(runner_output: &Value) -> Result<Envelope, ExplainError> {
+    check_tag(runner_output)?;
+    canonical::check_integers(runner_output)?;
+    serde_json::from_value(runner_output.clone())
+        .map_err(|error| ExplainError::new("MalformedRunnerOutput", error.to_string()))
 }
 
 /// Refuse a package that holds a belief of a higher order than the
@@ -418,10 +463,199 @@ pub fn check_depth(runner_output: &Value, policies: &Value) -> Result<(), Explai
     Ok(())
 }
 
+fn finding(rule: &'static str, path: String, detail: String) -> ExplainError {
+    let mut error = ExplainError::new(rule, detail);
+    error.path = Some(path);
+    error
+}
+
+/// Refuse a package whose supersession links break a rule of kernel
+/// contract 2.0, with every finding, from the contract text alone
+/// (CAC-KERNEL section 6; enaction-engine ADR-0029 and ADR-0030):
+///
+/// * `supersedes-present`: the link names no belief of the package, at
+///   `package.beliefs[belief_id=N].supersedes`;
+/// * the six cause rules, at `package.beliefs[belief_id=N].supersedes.because`
+///   with `N` the successor, in the order of the contract's table, after
+///   `supersedes-present` for the same link. `supersession-cause-present`
+///   (no event of the package has the id) is then the only finding for that
+///   link. Otherwise `-observed` (the event's observer is not the revising
+///   mind: the successor's outermost holder, or its bearer when it has
+///   none), `-cited` (the event is not among the successor's
+///   `source_events`), `-new` (it is among those of the belief replaced),
+///   `-not-earlier` (its tick is before the replaced belief's `valid_from`)
+///   and `-not-later` (its tick is after the successor's `valid_from`).
+///   With no belief to replace, `-new` and `-not-earlier` are skipped;
+/// * `belief-key-chained`: the beliefs of one key (`holders`, `bearer`,
+///   `proposition`) form one chain under in-key links, at
+///   `package.beliefs[belief_id=N].supersedes`. A belief of the key that
+///   supersedes no belief of the key, other than the earliest by
+///   (`valid_from`, id), is a silent overwrite; a belief that supersedes a
+///   belief of the key that another belief of the key, earlier by id,
+///   already supersedes is a fork.
+///
+/// The link findings come first, in document order, then the key findings,
+/// key by key. That order is this lens's own, not the validator's.
+/// Other package rules (`supersession-acyclic`, the digest, the status
+/// policy and the rest of CAC-KERNEL section 6) are the validator's alone.
+/// A runner output with another tag gives the one `WrongContract` finding.
+pub fn check_links(runner_output: &Value) -> Result<(), Vec<ExplainError>> {
+    let envelope = read_envelope(runner_output).map_err(|error| vec![error])?;
+    let world = World::read(&envelope);
+    let beliefs = &envelope.package.beliefs;
+    let by_id: BTreeMap<u64, &Belief> = beliefs.iter().map(|b| (b.belief_id, b)).collect();
+    let mut findings = Vec::new();
+
+    for belief in beliefs {
+        let Some(link) = belief.supersedes else {
+            continue;
+        };
+        let id = belief.belief_id;
+        let path = format!("package.beliefs[belief_id={id}].supersedes");
+        let because = format!("{path}.because");
+        let replaced = by_id.get(&link.belief).copied();
+        if replaced.is_none() {
+            findings.push(finding(
+                "supersedes-present",
+                path.clone(),
+                format!(
+                    "belief {id} supersedes belief {}, which the package does not hold",
+                    link.belief
+                ),
+            ));
+        }
+        let Some(event) = world.events.get(&link.because) else {
+            findings.push(finding(
+                "supersession-cause-present",
+                because,
+                format!(
+                    "belief {id} names event {} as its cause, which the package does not hold",
+                    link.because
+                ),
+            ));
+            continue;
+        };
+        let tick = event.get("tick").and_then(Value::as_u64);
+        let observer = event.get("observer").and_then(Value::as_str);
+        let revising = belief.holders.first().unwrap_or(&belief.bearer);
+        if observer != Some(revising.as_str()) {
+            findings.push(finding(
+                "supersession-cause-observed",
+                because.clone(),
+                format!(
+                    "event {} was observed by {}, not by {revising}, the mind that revises belief {id}",
+                    link.because,
+                    observer.unwrap_or("no one")
+                ),
+            ));
+        }
+        if !belief.source_events.contains(&link.because) {
+            findings.push(finding(
+                "supersession-cause-cited",
+                because.clone(),
+                format!(
+                    "belief {id} does not rest on event {}, its cause",
+                    link.because
+                ),
+            ));
+        }
+        if let Some(replaced) = replaced {
+            if replaced.source_events.contains(&link.because) {
+                findings.push(finding(
+                    "supersession-cause-new",
+                    because.clone(),
+                    format!(
+                        "belief {} already rests on event {}, so it is not new evidence",
+                        replaced.belief_id, link.because
+                    ),
+                ));
+            }
+            if let Some(tick) = tick
+                && tick < replaced.valid_from
+            {
+                findings.push(finding(
+                    "supersession-cause-not-earlier",
+                    because.clone(),
+                    format!(
+                        "event {} is on tick {tick}, before belief {} starts on tick {}",
+                        link.because, replaced.belief_id, replaced.valid_from
+                    ),
+                ));
+            }
+        }
+        if let Some(tick) = tick
+            && tick > belief.valid_from
+        {
+            findings.push(finding(
+                "supersession-cause-not-later",
+                because,
+                format!(
+                    "event {} is on tick {tick}, after belief {id} starts on tick {}",
+                    link.because, belief.valid_from
+                ),
+            ));
+        }
+    }
+
+    type Key<'b> = (&'b [String], &'b str, &'b str);
+    let mut keys: BTreeMap<Key, Vec<&Belief>> = BTreeMap::new();
+    for belief in beliefs {
+        keys.entry((
+            belief.holders.as_slice(),
+            belief.bearer.as_str(),
+            belief.proposition.as_str(),
+        ))
+        .or_default()
+        .push(belief);
+    }
+    for members in keys.values_mut() {
+        members.sort_by_key(|belief| belief.belief_id);
+        let earliest = members
+            .iter()
+            .min_by_key(|belief| (belief.valid_from, belief.belief_id))
+            .map(|belief| belief.belief_id);
+        let in_key: BTreeSet<u64> = members.iter().map(|belief| belief.belief_id).collect();
+        let mut superseded_by: BTreeMap<u64, u64> = BTreeMap::new();
+        for belief in members.iter() {
+            let id = belief.belief_id;
+            let path = format!("package.beliefs[belief_id={id}].supersedes");
+            match belief.replaces().filter(|target| in_key.contains(target)) {
+                None if Some(id) != earliest => findings.push(finding(
+                    "belief-key-chained",
+                    path,
+                    format!(
+                        "belief {id} supersedes no earlier belief of its key: a silent overwrite"
+                    ),
+                )),
+                None => {}
+                Some(target) => {
+                    if let Some(first) = superseded_by.get(&target) {
+                        findings.push(finding(
+                            "belief-key-chained",
+                            path,
+                            format!(
+                                "belief {id} supersedes belief {target}, which belief {first} already supersedes: a fork"
+                            ),
+                        ));
+                    } else {
+                        superseded_by.insert(target, id);
+                    }
+                }
+            }
+        }
+    }
+
+    if findings.is_empty() {
+        Ok(())
+    } else {
+        Err(findings)
+    }
+}
+
 /// Every model of the package (a belief of order 1 or more), in belief-id
 /// order, with its timeline, its `until` when it is superseded, and
 /// whether it is stale-divergent: the shape of `expected.json` in
-/// Enaction's `conformance/tom/v1`. Derived from the package alone, by the
+/// Enaction's `conformance/tom/v2`. Derived from the package alone, by the
 /// rule of CAC-KERNEL section 9, "Models are compared with minds"; world
 /// truth is not read.
 ///
@@ -509,7 +743,7 @@ impl<'a> Ledger<'a> {
     fn new(beliefs: &'a [Belief]) -> Self {
         let mut ended_at: BTreeMap<u64, u64> = BTreeMap::new();
         for belief in beliefs {
-            if let Some(ended) = belief.supersedes {
+            if let Some(ended) = belief.replaces() {
                 let tick = ended_at.entry(ended).or_insert(belief.valid_from);
                 *tick = (*tick).min(belief.valid_from);
             }
@@ -651,7 +885,8 @@ impl<'a> Ledger<'a> {
                     "holds": belief.status.holds(),
                     "valid_from": belief.valid_from,
                     "until": self.until(belief),
-                    "supersedes": belief.supersedes,
+                    "supersedes": belief.replaces(),
+                    "supersedes_because": world.link_cause(belief),
                     "world": if belief.holders.is_empty() {
                         json!(belief.status.world(in_world_truth))
                     } else {
@@ -679,7 +914,8 @@ impl<'a> Ledger<'a> {
             },
             "valid_from": model.valid_from,
             "until": derived.until,
-            "supersedes": model.supersedes,
+            "supersedes": model.replaces(),
+            "supersedes_because": world.link_cause(model),
             "caused_by": model
                 .source_events
                 .iter()
@@ -746,6 +982,32 @@ impl<'a> World<'a> {
         Value::Object(out)
     }
 
+    /// The event a supersession link names as its cause, with its id, kind,
+    /// observer, tick and proposition, or `resolved: false` when the
+    /// package holds no such event. `null` when the belief supersedes
+    /// nothing.
+    fn link_cause(&self, belief: &Belief) -> Value {
+        let Some(link) = belief.supersedes else {
+            return Value::Null;
+        };
+        let mut out = Map::new();
+        out.insert("id".into(), json!(link.because));
+        match self.events.get(&link.because) {
+            Some(event) => {
+                out.insert("resolved".into(), json!(true));
+                for name in ["kind", "observer", "tick", "proposition"] {
+                    if let Some(value) = event.get(name) {
+                        out.insert(name.into(), value.clone());
+                    }
+                }
+            }
+            None => {
+                out.insert("resolved".into(), json!(false));
+            }
+        }
+        Value::Object(out)
+    }
+
     fn belief_row(&self, belief: &Belief) -> Value {
         let in_world_truth = self.truth.contains(belief.proposition.as_str());
         // Only order-0 beliefs reach this comparison; models are in `models`.
@@ -762,7 +1024,8 @@ impl<'a> World<'a> {
             },
             "source_events": belief.source_events,
             "valid_from": belief.valid_from,
-            "supersedes": belief.supersedes,
+            "supersedes": belief.replaces(),
+            "supersedes_because": self.link_cause(belief),
             "in_world_truth": in_world_truth,
             "world": belief.status.world(in_world_truth),
             "guarantee": level,
@@ -1076,6 +1339,7 @@ pub fn render_text(report: &Value) -> String {
                 text(&belief["world"]),
                 level(belief)
             );
+            render_link(&mut out, "    ", belief);
         }
     }
     for model in report["models"].as_array().into_iter().flatten() {
@@ -1083,6 +1347,34 @@ pub fn render_text(report: &Value) -> String {
         render_model(&mut out, model);
     }
     out
+}
+
+/// The line that says which belief a belief replaces and why: "replaces
+/// belief N because of event E: kind by observer at tick T, proposition".
+/// Nothing for a belief that supersedes nothing.
+fn render_link(out: &mut String, indent: &str, belief: &Value) {
+    let cause = &belief["supersedes_because"];
+    if cause.is_null() {
+        return;
+    }
+    let replaced = text(&belief["supersedes"]);
+    if cause["resolved"] == true {
+        let _ = writeln!(
+            out,
+            "{indent}replaces belief {replaced} because of event {}: {} by {} at tick {}, {:?}",
+            cause["id"],
+            text(&cause["kind"]),
+            text(&cause["observer"]),
+            text(&cause["tick"]),
+            text(&cause["proposition"])
+        );
+    } else {
+        let _ = writeln!(
+            out,
+            "{indent}replaces belief {replaced} because of event {id} (unresolved: the package has no event {id})",
+            id = cause["id"]
+        );
+    }
 }
 
 /// `21..111` for a closed range, `112..` for one that runs to the end of
@@ -1140,6 +1432,7 @@ fn render_model(out: &mut String, model: &Value) {
         );
     }
     let _ = writeln!(out, "  lifetime: {lifetime}");
+    render_link(out, "  ", model);
     let causes: Vec<String> = model["caused_by"]
         .as_array()
         .into_iter()

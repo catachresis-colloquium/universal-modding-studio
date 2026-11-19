@@ -1,0 +1,23 @@
+{
+  "repository": "https://github.com/catachresis-colloquium/enaction-engine",
+  "commit": "11bd247b81dd336a5c153e588d99528002b321f3",
+  "branch": "main",
+  "vendored_on": "2026-11-19",
+  "kernel_contract": "2.0",
+  "kernel_contract_state": "draft",
+  "corpora": [
+    {
+      "path": "conformance/tom/v2",
+      "vendored_as": "vendor/enaction/conformance/tom/v2",
+      "tree": "997e784191b43840b0de9ceced0e9a1534d50bfc",
+      "sha256sums_digest": "6207e7068ccfc00001b4adf26d9c053b5a493715cce7f7de2708d257ed6cfcfa"
+    },
+    {
+      "path": "conformance/mind/v2",
+      "vendored_as": "vendor/enaction/conformance/mind/v2",
+      "tree": "c91c011df7d0dfd22769a1a13dcd421c6e9e488f",
+      "sha256sums_digest": "e0545aa17e9877b7b7559107629fc09b8546a865fd14835af8e46747c2183a60"
+    }
+  ],
+  "note": "Byte copies of conformance/tom/v2 and conformance/mind/v2 at this commit: the kernel contract 2.0 corpora of ADR-0030 (stage B, the typed supersession link). Contract 2.0 is a draft, so upstream may still change these bytes with no further bump, and nothing may be published as conforming to them. Each SHA256SUMS is upstream's own file; its digest is pinned here. The v1 corpora stay vendored beside them, frozen, with their own records (vendor/enaction/PROVENANCE.json for mind/v1, vendor/enaction/conformance/tom/PROVENANCE.json for tom/v1). Do not edit the vendored files: re-vendor from a new commit and update this record."
+}

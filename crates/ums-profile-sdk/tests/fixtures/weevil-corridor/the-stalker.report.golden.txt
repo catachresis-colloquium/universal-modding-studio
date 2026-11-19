@@ -1,5 +1,5 @@
 explain report ums-explain/3
-inputs: enaction-runner-output/1 + enaction-mind-trace/1 (not-validated)
+inputs: enaction-runner-output/2 + enaction-mind-trace/1 (not-validated)
 package profile: idaptik/weevil-corridor 1.0
 mind profile: idaptik/weevil-corridor 1.0; producer: evil-weevil abi 1.2
 leak-verdict: unverified (no counterfactual seam)
@@ -43,6 +43,7 @@ model 1: guard-0 models contact-41: "guard-0 in room-0" (rejected 0..0: says it 
 
 model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: says it holds) [tested]
   lifetime: from tick 161 (not superseded); supersedes belief 1
+  replaces belief 1 because of event 2: action_outcome by guard-0 at tick 161, "guard-0 attacked contact-41 at tick 161"
   caused by: #2 action_outcome@161
   world: in world truth (a separate fact; a model is never compared with it)
   compared with contact-41's own beliefs about it:
