@@ -8,6 +8,14 @@
 //! says every pair exits 0 from `enaction-validate`; that is IDApTIK's
 //! claim and is not re-checked here (no validator runs in this test).
 //!
+//! Kernel contract 2.0 (enaction-engine ADR-0030): these documents are
+//! `enaction-runner-output/1`, and the lens now reads `/2` only. It refuses
+//! each runner output here for its tag alone, and
+//! `every_corridor_runner_output_is_refused_for_its_tag` holds it to that.
+//! The tests below that need a report are `#[ignore]`d with that reason,
+//! and the golden files keep the reports of the `/1` documents, until the
+//! corridor is re-vendored from an IDApTIK commit that emits `/2`.
+//!
 //! The explain lens runs over each scenario and its report is pinned as a
 //! golden file in `tests/fixtures/weevil-corridor`. The figures asserted
 //! below were measured by the coordinator on the real chain on 2026-11-14:
@@ -23,7 +31,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use support::{check_vendored, copy_tree, read_json, repo_root, sha256_hex};
 use ums_profile_sdk::canonical::to_canonical_string;
-use ums_profile_sdk::explain::{explain, model_timelines, render_text};
+use ums_profile_sdk::explain::{check_links, explain, model_timelines, render_text};
 
 /// The runs before slice 2, under the depth-0 policies.
 const SCENARIOS: [&str; 6] = [
@@ -157,6 +165,34 @@ fn the_model_runs_hold_models_and_the_earlier_runs_do_not() {
 }
 
 #[test]
+fn every_corridor_runner_output_is_refused_for_its_tag() {
+    let message = "WrongContract: the document is enaction-runner-output/1; this lens \
+                   reads enaction-runner-output/2 (kernel contract 2.0) only, and refuses \
+                   any other tag without reading the body";
+    let mut refused = 0;
+    for scenario in all_scenarios() {
+        let dir = corridor();
+        let runner_output = read_json(&dir.join(format!("{scenario}.runner-output.json")));
+        assert_eq!(
+            runner_output["contract"], "enaction-runner-output/1",
+            "{scenario}: re-vendored at /2? then this is stage 2"
+        );
+        let trace_path = dir.join(format!("{scenario}.mind-trace.json"));
+        let mind_trace = trace_path.exists().then(|| read_json(&trace_path));
+        let error = explain(&runner_output, mind_trace.as_ref(), false).expect_err(scenario);
+        assert_eq!(error.to_string(), message, "{scenario}");
+        assert_eq!(error.path(), Some("contract"), "{scenario}");
+        let error = model_timelines(&runner_output).expect_err(scenario);
+        assert_eq!(error.to_string(), message, "{scenario}");
+        let findings = check_links(&runner_output).expect_err(scenario);
+        assert_eq!(findings.len(), 1, "{scenario}: {findings:?}");
+        assert_eq!(findings[0].to_string(), message, "{scenario}");
+        refused += 1;
+    }
+    assert_eq!(refused, 12);
+}
+
+#[test]
 fn a_changed_or_extra_vendored_document_fails_the_check() {
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("vendored-idaptik");
     let _ = fs::remove_dir_all(&dir);
@@ -179,6 +215,7 @@ fn a_changed_or_extra_vendored_document_fails_the_check() {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn decoy_lure_has_36_beliefs_and_every_one_diverges() {
     let report = report("decoy-lure");
     assert_eq!(
@@ -188,6 +225,7 @@ fn decoy_lure_has_36_beliefs_and_every_one_diverges() {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn cautious_sentry_has_36_beliefs_and_every_one_agrees() {
     let report = report("cautious-sentry");
     assert_eq!(
@@ -197,6 +235,7 @@ fn cautious_sentry_has_36_beliefs_and_every_one_agrees() {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn the_grudge_overrides_on_37_ticks_from_20_to_56() {
     let report = report("the-grudge");
     let expected: Vec<u64> = (20..=56).collect();
@@ -205,6 +244,7 @@ fn the_grudge_overrides_on_37_ticks_from_20_to_56() {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn the_grudge_control_has_no_commitment_override() {
     let report = report("the-grudge-control");
     for agent in report["agents"].as_array().unwrap() {
@@ -213,12 +253,14 @@ fn the_grudge_control_has_no_commitment_override() {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn the_flinch_has_one_startle_on_tick_10() {
     let report = report("the-flinch");
     assert_eq!(guard(&report)["tells_at"]["startle"], json!([10]));
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn the_flinch_control_has_no_startle() {
     let report = report("the-flinch-control");
     for agent in report["agents"].as_array().unwrap() {
@@ -237,6 +279,7 @@ fn golden_path(scenario: &str, extension: &str) -> PathBuf {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn each_scenario_report_matches_its_golden_files() {
     // No bless mode: a changed report is regenerated by hand and reviewed.
     for scenario in all_scenarios() {
@@ -291,6 +334,7 @@ fn models(scenario: &str) -> Vec<Model> {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn false_exposure_has_a_model_that_agrees_from_21_and_diverges_from_52() {
     // The guard thinks the contact knows where it is from tick 21 (belief 3,
     // certain) and does not restate that until tick 112. The contact sees
@@ -327,6 +371,7 @@ fn false_exposure_has_a_model_that_agrees_from_21_and_diverges_from_52() {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn the_stalker_models_are_right_throughout() {
     assert_eq!(
         models("the-stalker"),
@@ -338,6 +383,7 @@ fn the_stalker_models_are_right_throughout() {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn caught_has_a_model_that_agrees_from_101_to_the_end() {
     // The contact glances at tick 101 and, with a memory of 30 ticks
     // (IDApTIK 802b009), still knows when the guard's blows land from 116:
@@ -357,6 +403,7 @@ fn caught_has_a_model_that_agrees_from_101_to_the_end() {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn the_controls_hold_no_model() {
     for scenario in [
         "the-stalker-control",
@@ -374,6 +421,7 @@ fn the_controls_hold_no_model() {
 }
 
 #[test]
+#[ignore = "stage 2: the corridor documents are enaction-runner-output/1 and the lens reads /2 only; they wait for IDApTIK at kernel contract 2.0"]
 fn a_corridor_model_is_never_compared_with_world_truth() {
     for scenario in ["the-stalker", "caught", "false-exposure"] {
         let original = read_json(&corridor().join(format!("{scenario}.runner-output.json")));

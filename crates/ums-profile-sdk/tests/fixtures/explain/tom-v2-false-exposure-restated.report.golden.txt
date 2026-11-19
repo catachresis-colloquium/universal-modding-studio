@@ -1,0 +1,31 @@
+explain report ums-explain/3
+inputs: enaction-runner-output/2 + no mind trace (not-validated)
+package profile: conformance/tom/v2 1.0
+leak-verdict: unverified (no counterfactual seam)
+beliefs: 2; agrees-with-world: 1; diverges-from-world: 0; no-claim: 1
+models: 2; stale-divergent: 0; refused: 0
+
+agent contact-21: commitment-override ticks: 0 of 0 [tested]
+  beliefs: 2; agrees-with-world: 1; diverges-from-world: 0; no-claim: 1
+  belief 1: "guard-0 at cell-14" (believed 8000..9500); in world truth -> agrees-with-world [tested]
+  belief 3: "guard-0 at cell-14" (unknown 0..10000); in world truth -> no-claim [tested]
+    replaces belief 1 because of event 3: observation by contact-21 at tick 6, "guard-0 at cell-14"
+
+model 2: guard-0 models contact-21: "guard-0 at cell-14" (believed 8000..9500: says it holds) [tested]
+  lifetime: from tick 2 until tick 6
+  caused by: #2 observation@2
+  world: in world truth (a separate fact; a model is never compared with it)
+  compared with contact-21's own beliefs about it:
+    belief 1: believed (holds) ticks 2..5; agrees-with-world
+    belief 3: unknown (does not hold) ticks 6..; no-claim
+  ticks 2..5: agrees
+
+model 4: guard-0 models contact-21: "guard-0 at cell-14" (believed 8000..9500: says it holds) [tested]
+  lifetime: from tick 6 (not superseded); supersedes belief 2
+  replaces belief 2 because of event 4: inference by guard-0 at tick 6, "contact-21 sees guard-0"
+  caused by: #4 inference@6
+  world: in world truth (a separate fact; a model is never compared with it)
+  compared with contact-21's own beliefs about it:
+    belief 1: believed (holds) ticks 2..5; agrees-with-world
+    belief 3: unknown (does not hold) ticks 6..; no-claim
+  ticks 6..: diverges

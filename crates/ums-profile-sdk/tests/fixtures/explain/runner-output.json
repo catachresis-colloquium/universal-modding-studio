@@ -1,5 +1,5 @@
 {
-  "contract": "enaction-runner-output/1",
+  "contract": "enaction-runner-output/2",
   "package": {
     "events": [
       {"event_id": 11, "sequence": 11, "tick": 10, "observer": "agent-b", "kind": "observation", "subject": {"agent": "agent-b"}, "proposition": "door is south", "confidence": 9000, "provenance": {"origin": "sight"}},
@@ -15,7 +15,7 @@
       {"belief_id": 6, "bearer": "agent-b", "holders": ["agent-a"], "proposition": "door is south", "status": "believed", "confidence": {"belief": 7500, "plausibility": 9000}, "source_events": [17], "valid_from": 14},
       {"belief_id": 7, "bearer": "agent-a", "proposition": "alarm is on", "status": "rejected", "confidence": {"belief": 200, "plausibility": 900}, "source_events": [12], "valid_from": 12}
     ],
-    "manifest": {"digest": "0000000000000000000000000000000000000000000000000000000000000000", "guarantees": ["esm/replay-deterministic"], "kernel_version": {"major": 1, "minor": 0}, "migration_from": {"major": 1, "minor": 0}, "profile": {"id": "stub/esm/v1", "targets_kernel": {"major": 1, "minor": 0}, "version": {"major": 1, "minor": 0}}, "schema_version": {"major": 1, "minor": 0}, "seed": {"fixed": 7}, "source": "stub"}
+    "manifest": {"digest": "0000000000000000000000000000000000000000000000000000000000000000", "guarantees": ["esm/replay-deterministic"], "kernel_version": {"major": 2, "minor": 0}, "migration_from": {"major": 1, "minor": 0}, "profile": {"id": "stub/esm/v1", "targets_kernel": {"major": 2, "minor": 0}, "version": {"major": 1, "minor": 0}}, "schema_version": {"major": 1, "minor": 0}, "seed": {"fixed": 7}, "source": "stub"}
   },
   "world_truth": ["door is south", "alarm is on"]
 }
