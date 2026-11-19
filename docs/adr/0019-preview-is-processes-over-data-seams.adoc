@@ -183,13 +183,13 @@ section 9's, and the runner emits one file per document.
 
 | the same against the real `enaction-validate` (digest rule on a tampered
   real runner output)
-| tested by hand on the real chain, 2026-11-14; in CI from 2026-11-19 (`real-chain.yml`)
+| tested in CI from 2026-11-19 (`real-chain.yml`, first run `44427809761`: 8/8); by hand from 2026-11-14
 | `tests/real_chain.rs`,
   `a_tampered_runner_output_is_refused_by_the_real_validator_with_the_digest_rule`;
   `#[ignore]`d, needs `ENACTION_VALIDATE` and `IDAPTIK_WEEVIL_REPLAY`
 
 | the preview works against the real IDApTIK runner and `enaction-validate`
-| tested by hand on the real chain, 2026-11-14; in CI from 2026-11-19 (`real-chain.yml`)
+| tested in CI from 2026-11-19 (`real-chain.yml`, first run `44427809761`: 8/8); by hand from 2026-11-14
 | `tests/real_chain.rs`, run by name with `--ignored`; it fails, never
   passes, when either variable is unset. All 5 tests passed against
   enaction-engine `d74a140`, evil-weevil `c655f46` and IDApTIK `22797e0`,
