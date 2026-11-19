@@ -1,9 +1,9 @@
 {
   "repository": "https://github.com/catachresis-colloquium/IDApTIK",
-  "commit": "d867eca06a0ce26e25a309751ec0d8e716e3ae8c",
-  "branch": "marina/hopeful-cannon-dhgq4h",
+  "commit": "9a89fcb0d7dc0d3f2080918def0dbcd4c1d04bf8",
+  "branch": "main",
   "pull_request": 234,
-  "pin_state": "IDApTIK pull request 234 head; re-pin to the main commit after merge",
+  "pull_request_head": "d867eca06a0ce26e25a309751ec0d8e716e3ae8c",
   "first_vendored_from": {
     "commit": "87b47a60699d125421ecff16be784242ace3ed9d",
     "branch": "marina/weevil-b1-runner"
@@ -33,5 +33,5 @@
     "depth_max_order": 1,
     "for": "the six slice 2 model runs"
   },
-  "note": "Byte copy of the corridor runner's committed Enaction documents (22 documents, README.md, SHA256SUMS) at IDApTIK pull request 234 head d867eca, which emits kernel contract 2.0 (enaction-runner-output/2, typed supersession links). Re-pin to the main commit after merge: a squash merge keeps these bytes, and diff -r against that commit must be empty. Against 802b009, the 12 runner outputs, README.md and SHA256SUMS changed; the 10 mind traces and both policies files are byte-identical. SHA256SUMS is IDApTIK's own file. Do not edit the vendored files: re-vendor from a new commit and update this record."
+  "note": "Byte copy of the corridor runner's committed Enaction documents (22 documents, README.md, SHA256SUMS) at IDApTIK main 9a89fcb, the merge of pull request 234, which emits kernel contract 2.0 (enaction-runner-output/2, typed supersession links). First vendored from the head of 234, d867eca; the fixture tree (531fe5e) is the same at both commits, so the re-pin changed no vendored byte. Against 802b009, the 12 runner outputs, README.md and SHA256SUMS changed; the 10 mind traces and both policies files are byte-identical. SHA256SUMS is IDApTIK's own file. Do not edit the vendored files: re-vendor from a new commit and update this record."
 }
