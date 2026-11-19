@@ -57,11 +57,12 @@ env:
   CARGO_TERM_COLOR: always
   ZIG_VERSION: '0.16.0'
   ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
-  # Verified together on 2026-11-15: all real_chain tests pass at these.
+  # Verified together on 2026-11-19: all real_chain tests pass at these
+  # (kernel contract 2.0: enaction-runner-output/2).
   # IDApTIK equals vendor/idaptik/PROVENANCE.json; the job checks that.
-  ENACTION_SHA: 724e5022e38bc5d604e82951f85d71530dd49333
+  ENACTION_SHA: 11bd247b81dd336a5c153e588d99528002b321f3
   EVIL_WEEVIL_SHA: bffcbe35e2258408e1adb52d097303807cdb3c26
-  IDAPTIK_SHA: 802b009b225eeada44fcc1bc0d4d6fb69b97f66f
+  IDAPTIK_SHA: 9a89fcb0d7dc0d3f2080918def0dbcd4c1d04bf8
 
 jobs:
   real-chain:

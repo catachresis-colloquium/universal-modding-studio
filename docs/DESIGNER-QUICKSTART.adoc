@@ -18,12 +18,14 @@ IDApTIK's `build.rs` looks under `EVIL_WEEVIL_ROOT`.
 Since then the kernel's `main` carries ABI 1.2 (evil-weevil #11, `0560b09`,
 "it models you"), and IDApTIK's runner needs it from `462af7c` on: a 1.1
 kernel does not export `ee_model_fingerprint`, and the runner will not link.
-The commands below fetch the three commits that `real-chain.yml` pins and
-that CI passed 8/8 on 2026-11-19: enaction-engine `724e502`, evil-weevil
-`bffcbe3` (ABI 1.2) and IDApTIK `802b009`. Do not build the heads instead:
-enaction-engine `11bd247` accepts only `enaction-runner-output/2`, while
-IDApTIK `802b009` still emits `/1`, so the validator refuses every preview.
-Move these commits only together with the pins in `real-chain.yml`.
+The commands below fetch the three commits that `real-chain.yml` pins:
+enaction-engine `11bd247`, evil-weevil `bffcbe3` (ABI 1.2) and IDApTIK
+`9a89fcb`. These speak Enaction kernel contract 2.0: IDApTIK emits
+`enaction-runner-output/2` and the validator accepts only that. Do not mix
+them with older commits: enaction-engine `11bd247` refuses every document
+from an IDApTIK before `9a89fcb` (such as `802b009`), which emits `/1`. Move
+these commits only together with the pins in `real-chain.yml` and
+`vendor/idaptik/PROVENANCE.json`.
 
 [source,bash]
 ----
@@ -33,9 +35,9 @@ fetch() {
   git -C "$1" fetch -q --depth 1 "https://github.com/catachresis-colloquium/$1" "$2" &&
   git -C "$1" checkout -q FETCH_HEAD
 }
-fetch enaction-engine 724e5022e38bc5d604e82951f85d71530dd49333
+fetch enaction-engine 11bd247b81dd336a5c153e588d99528002b321f3
 fetch evil-weevil     bffcbe35e2258408e1adb52d097303807cdb3c26
-fetch IDApTIK         802b009b225eeada44fcc1bc0d4d6fb69b97f66f
+fetch IDApTIK         9a89fcb0d7dc0d3f2080918def0dbcd4c1d04bf8
 
 # The validator.
 (cd enaction-engine && cargo build --locked -p enaction-contracts --bin enaction-validate)
