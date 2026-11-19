@@ -18,15 +18,24 @@ IDApTIK's `build.rs` looks under `EVIL_WEEVIL_ROOT`.
 Since then the kernel's `main` carries ABI 1.2 (evil-weevil #11, `0560b09`,
 "it models you"), and IDApTIK's runner needs it from `462af7c` on: a 1.1
 kernel does not export `ee_model_fingerprint`, and the runner will not link.
-The commands above clone `main`, so they build 1.2 unchanged. They were not
-re-run for this page at those commits.
+The commands below fetch the three commits that `real-chain.yml` pins and
+that CI passed 8/8 on 2026-11-19: enaction-engine `724e502`, evil-weevil
+`bffcbe3` (ABI 1.2) and IDApTIK `802b009`. Do not build the heads instead:
+enaction-engine `11bd247` accepts only `enaction-runner-output/2`, while
+IDApTIK `802b009` still emits `/1`, so the validator refuses every preview.
+Move these commits only together with the pins in `real-chain.yml`.
 
 [source,bash]
 ----
 mkdir -p ~/weevil && cd ~/weevil
-git clone --depth 1 https://github.com/catachresis-colloquium/enaction-engine
-git clone --depth 1 https://github.com/catachresis-colloquium/evil-weevil
-git clone --depth 1 https://github.com/catachresis-colloquium/IDApTIK
+fetch() {
+  git init -q "$1" &&
+  git -C "$1" fetch -q --depth 1 "https://github.com/catachresis-colloquium/$1" "$2" &&
+  git -C "$1" checkout -q FETCH_HEAD
+}
+fetch enaction-engine 724e5022e38bc5d604e82951f85d71530dd49333
+fetch evil-weevil     bffcbe35e2258408e1adb52d097303807cdb3c26
+fetch IDApTIK         802b009b225eeada44fcc1bc0d4d6fb69b97f66f
 
 # The validator.
 (cd enaction-engine && cargo build --locked -p enaction-contracts --bin enaction-validate)
@@ -201,8 +210,9 @@ debug and release. One of them,
 command for "the grudge" and requires its output to equal
 `tests/fixtures/weevil-corridor/the-grudge.report.golden.txt`, apart from
 the two header lines and the validation state. It reports 37
-commitment-override ticks (20..56). The test is not in CI, because CI builds
-no sibling binaries.
+commitment-override ticks (20..56). Since 2026-11-19 CI runs these tests too:
+`.github/workflows/real-chain.yml` builds the three binaries at pinned commits on every
+relevant pull request and push, and at the siblings' latest commits once a week.
 
 The file now holds 8 tests: three more for the slice 2 model scenarios
 (#113). The coordinator reports that all 8 passed on 2026-11-15 against the

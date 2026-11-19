@@ -13,11 +13,11 @@ preview adapter:
   after a replay-identical, validator-accepted preview. Version 2 carries one
   file per document (`runnerOutput`, optional `mindTrace`).
 
-The adapter is `crates/ums-profile-sdk/src/preview.rs` (ADR-0019, Proposed).
+The adapter is `crates/ums-profile-sdk/src/preview.rs` (ADR-0019, Accepted).
 Its protocol is tested against stub binaries that copy the real command
 lines; the explain lens is tested on documents the real runner wrote
 (`vendor/idaptik/weevil-corridor`). A preview against the real binaries is an
-ignored test, not run in CI (it passed by hand on 2026-11-14); see
+ignored test, which `.github/workflows/real-chain.yml` runs in CI from 2026-11-19; see
 `docs/ENACTION-ADAPTER.adoc` and
 `docs/DESIGNER-QUICKSTART.adoc`.
 

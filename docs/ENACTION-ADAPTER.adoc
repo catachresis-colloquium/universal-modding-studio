@@ -38,7 +38,7 @@ Rules:
 `adapters/enaction/preview-request.schema.json` records the request and
 `adapters/enaction/preview-response.schema.json` the response.
 
-== ProcessPreviewAdapter (ADR-0019, Proposed)
+== ProcessPreviewAdapter (ADR-0019, Accepted)
 
 `ums_profile_sdk::preview::ProcessPreviewAdapter` is the first non-test
 `SimulationAdapter`. It runs a game's pre-built headless runner twice and
@@ -90,7 +90,9 @@ Status:
   pair exits 0 from `enaction-validate` is IDApTIK's recorded claim;
 * the preview against the real binaries: an `#[ignore]`d test,
   `tests/real_chain.rs`, that needs `ENACTION_VALIDATE` and
-  `IDAPTIK_WEEVIL_REPLAY`. It is not run in CI. All 5 of its tests passed
+  `IDAPTIK_WEEVIL_REPLAY`. Since 2026-11-19 `.github/workflows/real-chain.yml` runs it in CI
+  (pinned sibling commits on pull requests and pushes, sibling heads weekly).
+  All 5 of its tests passed
   by hand on 2026-11-14 against enaction-engine `d74a140`, evil-weevil
   `c655f46` and IDApTIK `22797e0`. After #113 it holds 8; the coordinator
   reports all 8 passed on 2026-11-15 against IDApTIK `462af7c` on the ABI
