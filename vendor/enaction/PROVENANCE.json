@@ -1,8 +1,15 @@
 {
   "repository": "https://github.com/catachresis-colloquium/enaction-engine",
-  "commit": "03cb27b5ba0a564d7da2be161adaf0812fe8a496",
+  "commit": "11bd247b81dd336a5c153e588d99528002b321f3",
+  "branch": "main",
   "path": "conformance/mind/v1",
-  "vendored_on": "2026-11-14",
+  "vendored_on": "2026-11-19",
+  "tree": "c24d41eb284debfe991d647aa55c70f993943099",
+  "state": "frozen",
+  "previously_vendored_from": {
+    "commit": "03cb27b5ba0a564d7da2be161adaf0812fe8a496",
+    "vendored_on": "2026-11-14"
+  },
   "sha256sums_digest": "089f67879ec06923ee576546def7491beb524558b7d7309cc1de6b55071b91bd",
-  "note": "Byte copy of conformance/mind/v1 at this commit. SHA256SUMS is upstream's own file; its digest is pinned here. Do not edit the vendored files: re-vendor from a new commit and update this record."
+  "note": "Byte copy of conformance/mind/v1 at this commit, in the frozen state of ADR-0030: no file in it changes again upstream. Every byte is the same as at 03cb27b, so only this record changed when it was re-pinned. A kernel contract 2.0 reader refuses its runner output for its tag alone. SHA256SUMS is upstream's own file; its digest is pinned here. Do not edit the vendored files."
 }

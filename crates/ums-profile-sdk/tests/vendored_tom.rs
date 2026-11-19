@@ -150,8 +150,25 @@ fn every_v1_package_is_refused_for_its_tag_alone_with_one_finding() {
         assert_refused_for_its_tag(&findings[0], found, &what);
         refused += 1;
     }
-    // Seven accepted cases and one rejected case.
-    assert_eq!(refused, 8);
+    // The frozen corpus (Enaction 11bd247): seven accepted cases and three
+    // rejected cases.
+    assert_eq!(refused, 10);
+    let rejected: Vec<String> = {
+        let mut names: Vec<String> = fs::read_dir(v1().join("rejected"))
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect();
+        names.sort();
+        names
+    };
+    assert_eq!(
+        rejected,
+        [
+            "belief-key-chained",
+            "nesting-bounded",
+            "supersession-monotone"
+        ]
+    );
 }
 
 // ---- the v2 corpus ----
