@@ -102,11 +102,44 @@ Status:
 
 `ums-profile preview ... --explain` prints `replay-identical: ok`, the
 validator verdict and a designer report from `ums_profile_sdk::explain`. The
-lens reads one `enaction-runner-output/1` document and, when there is one,
+lens reads one `enaction-runner-output/2` document and, when there is one,
 one `enaction-mind-trace/1` document, in the shapes of CAC-KERNEL sections 9
-and 10, with unknown members refused. A proposition is an opaque string; a
-belief has a `bearer`, optional `holders`, an interval `confidence`
-`{belief, plausibility}` and a lowercase status.
+and 10 for kernel contract 2.0 (enaction-engine ADR-0030, a draft), with
+unknown members refused. A proposition is an opaque string; a belief has a
+`bearer`, optional `holders`, an interval `confidence`
+`{belief, plausibility}`, a lowercase status and an optional link
+`supersedes: {belief, because}`.
+
+The lens reads the `contract` tag before the body. It refuses any tag other
+than `enaction-runner-output/2` for that alone, with one finding:
+
+[source,text]
+----
+WrongContract: the document is enaction-runner-output/1; this lens reads enaction-runner-output/2 (kernel contract 2.0) only, and refuses any other tag without reading the body
+----
+
+So a kernel 1.x document is never reported as a malformed 2.0 one. In a
+preview the refusal goes to stderr and the command fails.
+`tests/vendored_tom.rs`, `tests/vendored_enaction.rs` and
+`tests/vendored_idaptik.rs` check that every vendored `/1` document gets
+exactly that finding.
+
+Every belief that replaces another shows the belief it replaces and the
+event that caused the revision: its id, kind, observer, tick and
+proposition. The JSON member is `supersedes_because`, beside `supersedes`
+(the id of the belief replaced, as before). The text line reads, for
+Enaction's `conformance/tom/v2` case `false-exposure-restated`:
+
+[source,text]
+----
+  belief 3: "guard-0 at cell-14" (unknown 0..10000); in world truth -> no-claim [tested]
+    replaces belief 1 because of event 3: observation by contact-21 at tick 6, "guard-0 at cell-14"
+----
+
+A cause that names no event of the package is shown as
+`(unresolved: the package has no event N)`, not dropped. The lens does not
+check the cause; the validator does (see "Models" below for the lens's own
+copy of the rules, which `explain` does not run).
 
 Per agent and per tick window it shows the affect token and the events that
 caused each change, the candidate ranking (never a score), the incumbent,
@@ -179,15 +212,24 @@ model 3: guard-0 models contact-41: "guard-0 in room-0" (certain 10000..10000: s
   stale-divergent: right when stated, wrong from tick 52 without being restated [tested]
 ----
 
+This excerpt comes from the golden report of the `/1` corridor document.
+The lens now refuses that document, and the golden stays as it is until the
+corridor is re-vendored from an IDApTIK commit that emits `/2`.
+
 `explain::model_timelines` gives the same derivation in the shape of the
-`expected.json` files of Enaction's `conformance/tom/v1`, vendored by digest
-in `vendor/enaction/conformance/tom/v1`. `tests/vendored_tom.rs` checks that
-each of its seven accepted cases derives exactly its `expected.json`, that
-`explain::check_depth` refuses the rejected case as `nesting-bounded` at
-`package.beliefs[belief_id=1].holders` under the corpus depth of 1, and that
-no model verdict changes when world truth is emptied or filled. In a preview
-the validator applies the depth rule; the lens repeats it only so that a
-reader of the vendored corpus refuses what the corpus refuses.
+`expected.json` files of Enaction's `conformance/tom/v2`, vendored by digest
+in `vendor/enaction/conformance/tom/v2`. `tests/vendored_tom.rs` checks that
+each of its seven accepted cases derives exactly its `expected.json`, and
+that no model verdict changes when world truth is emptied or filled. Each of
+its eight rejected cases is refused with exactly its rule, at its path, and
+with no other finding: `explain::check_depth` refuses `nesting-bounded`, and
+`explain::check_links` refuses `belief-key-chained` and the six
+`supersession-cause-*` rules, reimplemented from CAC-KERNEL section 6. In a
+preview the validator applies every package rule, and `explain` runs
+neither check; the lens repeats them only so that a reader of the vendored
+corpus refuses what the corpus refuses. `vendor/enaction/conformance/tom/v1`
+and `mind/v1` stay vendored, frozen, as in Enaction: their sums are
+checked, and every package in them is refused for its tag.
 
 The contact in that run sees the guard on tick 21 and remembers it for 30
 ticks (IDApTIK's world rule since `802b009`), so its own belief turns
@@ -229,6 +271,13 @@ History:
   `model_summary` were added, which alone would keep the tag; but a nested
   belief left the world comparison and the per-agent and overall belief
   counts, which changed their meaning.
+* `ums-explain/3`, kept for kernel contract 2.0. The lens reads
+  `enaction-runner-output/2`, and `inputs.runner_output` names it. That
+  member still names the input contract, so its meaning is the same. The
+  member `supersedes_because` and the line "replaces belief N because of
+  event E" are added. `supersedes` still holds the id of the belief
+  replaced, and every count, verdict and timeline is computed as before. No
+  existing member or line changes meaning, so the tag stays.
 
 The vendored Enaction corpus (`vendor/enaction/conformance/mind/v1`) checks
 the lens against the owner's fixtures: for `the-grudge` it reports exactly

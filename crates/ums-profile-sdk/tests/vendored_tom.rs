@@ -599,3 +599,24 @@ fn the_timing_rules_bite_one_tick_past_each_bound() {
         ["supersession-cause-not-earlier"]
     );
 }
+
+#[test]
+fn the_adapter_page_cause_excerpt_is_a_block_of_the_golden() {
+    // docs/ENACTION-ADAPTER.adoc ("Explain lens") quotes the cause line of
+    // false-exposure-restated. The quote must appear in the golden verbatim.
+    let page = fs::read_to_string(repo_root().join("docs/ENACTION-ADAPTER.adoc")).unwrap();
+    let block = page
+        .split("case `false-exposure-restated`:\n\n[source,text]\n----\n")
+        .nth(1)
+        .and_then(|rest| rest.split("\n----\n").next())
+        .expect("the cause excerpt");
+    assert!(
+        block.contains("replaces belief 1 because of event 3"),
+        "{block}"
+    );
+    let golden = fs::read_to_string(golden_path("txt")).unwrap();
+    assert!(
+        golden.contains(&format!("\n{block}\n")),
+        "the page's excerpt is not in the golden:\n{block}"
+    );
+}
